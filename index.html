@@ -1,0 +1,2335 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>다이아 거래소</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Noto+Sans+KR:wght@400;500;700&family=Pixelify+Sans:wght@500;700&display=swap">
+<style>
+:root{
+  --bg:#f1f5f6; --surface:#ffffff; --fg:#10222a; --muted:#587078; --line:#d5e0e3;
+  --accent:#0aa5a0; --accent-text:#07746f; --up:#d3302c; --down:#2863d4;
+  --on-up:#ffffff; --on-down:#ffffff; --soft:#e8f1f2;
+  --font-display:'Pixelify Sans','Noto Sans KR',system-ui,sans-serif;
+  --font-body:'Noto Sans KR',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --font-mono:'JetBrains Mono',ui-monospace,Menlo,Consolas,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0b1418; --surface:#122026; --fg:#e5f0f2; --muted:#8aa3ab; --line:#25373e;
+    --accent:#3fd9d2; --accent-text:#3fd9d2; --up:#ff6f6a; --down:#7aa8ff;
+    --on-up:#1b0605; --on-down:#06142e; --soft:#192c33; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0b1418; --surface:#122026; --fg:#e5f0f2; --muted:#8aa3ab; --line:#25373e;
+  --accent:#3fd9d2; --accent-text:#3fd9d2; --up:#ff6f6a; --down:#7aa8ff;
+  --on-up:#1b0605; --on-down:#06142e; --soft:#192c33; color-scheme:dark;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--font-body);font-size:14px;line-height:1.5;}
+h1,h2,h3,p{margin:0}
+.num{font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+.up{color:var(--up)} .down{color:var(--down)} .flat{color:var(--muted)}
+
+/* ===== 사이드바 레이아웃 ===== */
+.app-layout{display:flex;min-height:100vh}
+.sidebar{width:200px;min-width:160px;background:var(--surface);border-right:1px solid var(--line);display:flex;flex-direction:column;position:sticky;top:0;height:100vh;flex-shrink:0;overflow:hidden}
+.sidebar-nav{overflow-y:auto;flex:1}
+.sidebar-brand{display:flex;align-items:center;gap:10px;padding:18px 16px 14px;border-bottom:1px solid var(--line)}
+.logo{width:20px;height:20px;background:var(--accent);clip-path:polygon(50% 0,100% 38%,50% 100%,0 38%);flex-shrink:0}
+.sidebar-brand h1{font-size:15px;font-weight:700;letter-spacing:-.01em}
+.sidebar-nav{display:flex;flex-direction:column;padding:10px 8px;gap:2px;flex:1}
+.nav-item{all:unset;box-sizing:border-box;display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:6px;cursor:pointer;font-size:14px;font-weight:500;width:100%;color:var(--fg);transition:background .15s}
+.nav-item:hover{background:var(--soft)}
+.nav-item.on{background:var(--accent);color:#04201f;font-weight:700}
+.nav-icon{font-size:18px;width:22px;text-align:center}
+.sidebar-bottom{padding:10px 8px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:6px}
+.sidebar-user{padding:10px 12px;font-size:13px;color:var(--muted)}
+.sidebar-user b{display:block;color:var(--fg);font-weight:600;font-size:14px}
+
+.main-content{flex:1;min-width:0;padding:20px 24px 40px;max-width:1100px}
+.page{display:none}
+.page.on{display:block}
+
+/* ===== 공통 컴포넌트 ===== */
+.wrap{display:grid;gap:16px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:8px;min-width:0}
+.panel>h2,.panel-head{font-size:13px;font-weight:700;color:var(--muted);letter-spacing:.04em;padding:12px 16px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:10px}
+.pad{padding:16px}
+.notice{padding:10px 14px;border:1px solid var(--line);background:var(--soft);border-radius:6px;color:var(--fg)}
+.notice.err{border-color:var(--up);background:#fff0f0}
+input,select,textarea{font:inherit;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:9px 12px;min-width:0}
+input:focus-visible,button:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+textarea{resize:vertical;min-height:80px}
+label{font-size:12px;color:var(--muted);display:block;margin-bottom:4px}
+.frow{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
+.btn{font:inherit;font-weight:700;border:0;border-radius:6px;padding:10px 18px;cursor:pointer;background:var(--accent);color:#04201f;min-height:40px;white-space:nowrap}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn.buy{background:var(--up);color:var(--on-up)}
+.btn.sell{background:var(--down);color:var(--on-down)}
+.btn.ghost{background:transparent;color:var(--fg);border:1px solid var(--line);font-weight:500}
+.btn.sm{padding:6px 12px;min-height:0;font-size:13px}
+.btn.danger{background:#dc2626;color:#fff}
+.chip{font:inherit;font-size:12px;border:1px solid var(--line);background:var(--bg);color:var(--fg);border-radius:4px;padding:5px 10px;cursor:pointer}
+.chip:hover{border-color:var(--accent)}
+.chip.on{background:var(--accent);border-color:var(--accent);color:#04201f}
+.tag{display:inline-flex;align-items:center;font-size:11px;border:1px solid var(--accent);color:var(--accent-text);border-radius:12px;padding:2px 8px;cursor:pointer;white-space:nowrap}
+.tag.on{background:var(--accent);color:#04201f}
+.tags-row{display:flex;flex-wrap:wrap;gap:6px;padding:12px 16px 10px}
+.hint{min-height:18px;font-size:12px;color:var(--muted)}
+.empty{padding:24px 16px;color:var(--muted);text-align:center}
+.foot{font-size:12px;color:var(--muted)}
+.rule{border:0;border-top:1px solid var(--line);width:100%;margin:8px 0}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;min-width:420px}
+th,td{padding:9px 14px;text-align:right;border-top:1px solid var(--line);white-space:nowrap}
+th{font-size:12px;font-weight:500;color:var(--muted);border-top:0}
+th:first-child,td:first-child{text-align:left}
+/* ===== 관리자 페이지 ===== */
+.admin-hero{background:linear-gradient(135deg,#7c3aed 0%,#4f46e5 100%);color:#fff;border-radius:10px;padding:24px;display:flex;align-items:center;gap:16px}
+.admin-hero .icon{font-size:40px}
+.admin-hero h2{font-size:20px;font-weight:700;margin:0 0 4px}
+.admin-hero p{margin:0;opacity:.85;font-size:13px}
+#adminGoogleLoginBtn{background:white;color:#333;border:1px solid #ddd;font-weight:600}
+#adminGoogleLoginBtn:hover{background:#f8f8f8;box-shadow:0 2px 8px rgba(0,0,0,.12)}
+.badge{display:inline-block;font-size:10px;font-weight:700;border-radius:4px;padding:1px 6px;background:var(--soft);color:var(--muted)}
+.badge.green{background:#d1fae5;color:#065f46}
+.badge.red{background:#fee2e2;color:#991b1b}
+.badge.blue{background:#dbeafe;color:#1e40af}
+.badge.yellow{background:#fef9c3;color:#854d0e}
+
+/* ===== 모달 ===== */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;align-items:center;justify-content:center;padding:16px}
+.modal-bg.on{display:flex}
+.modal{background:var(--surface);border-radius:10px;border:1px solid var(--line);width:100%;max-width:580px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.2)}
+.modal-head{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--line);font-weight:700;font-size:16px}
+.modal-body{padding:20px}
+.modal-foot{padding:14px 20px;border-top:1px solid var(--line);display:flex;justify-content:flex-end;gap:10px}
+.close-btn{all:unset;cursor:pointer;font-size:20px;color:var(--muted);line-height:1}
+.form-group{display:grid;gap:6px;margin-bottom:14px}
+
+/* ===== 통장 ===== */
+.bank-hero{background:linear-gradient(135deg,var(--accent) 0%,#0773a0 100%);color:#fff;border-radius:10px;padding:28px 24px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.bank-hero .balance{font-size:36px;font-weight:700;font-family:var(--font-mono)}
+.bank-hero .label{font-size:13px;opacity:.8}
+.bank-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.bank-card{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:14px 16px}
+.bank-card dt{font-size:12px;color:var(--muted)}
+.bank-card dd{margin:4px 0 0;font-size:20px;font-weight:600;font-family:var(--font-mono)}
+.tx-list{list-style:none;margin:0;padding:0}
+.tx-item{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;border-top:1px solid var(--line);font-size:13px}
+.tx-item:first-child{border-top:0}
+.tx-item .tx-desc{flex:1;min-width:0}
+.tx-item .tx-desc span{display:block;color:var(--muted);font-size:12px}
+.tx-amt{font-family:var(--font-mono);font-weight:600;white-space:nowrap}
+
+/* ===== 주식 ===== */
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));margin:0}
+.stats>div{padding:12px 14px;border-left:1px solid var(--line);min-width:0}
+.stats>div:first-child{border-left:0}
+.stats dt{font-size:12px;color:var(--muted)}
+.stats dd{margin:2px 0 0;font-size:18px;font-weight:600;overflow-wrap:anywhere}
+.cols{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:16px;align-items:start}
+.row-stock{all:unset;box-sizing:border-box;display:grid;grid-template-columns:minmax(0,1fr) 72px auto;align-items:center;gap:10px;width:100%;padding:11px 14px;border-top:1px solid var(--line);cursor:pointer}
+.row-stock:first-of-type{border-top:0}
+.row-stock:hover{background:var(--soft)}
+.row-stock.on{background:var(--soft);box-shadow:inset 3px 0 0 var(--accent)}
+.nm{display:grid;min-width:0}
+.nm span{color:var(--muted);font-size:12px;overflow-wrap:anywhere}
+.sym{font-family:var(--font-display);font-size:15px;letter-spacing:.04em}
+.px{display:grid;text-align:right;justify-items:end}
+.px .num:last-child{font-size:12px}
+.spark{width:72px;height:24px;display:block}
+.spark path{fill:none;stroke:currentColor;stroke-width:1.5;vector-effect:non-scaling-stroke}
+.quote{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:6px 16px;padding:14px 14px 4px}
+.quote h3{font-size:16px}
+.quote .big{font-size:26px;font-weight:600}
+.quote .chg{font-size:12px}
+.chart{padding:0 8px}
+.chart svg{display:block;width:100%;height:auto}
+.chart .grid{stroke:var(--line);stroke-width:1;fill:none}
+.chart .axis{fill:var(--muted);font:11px var(--font-mono)}
+.chart .ln{fill:none;stroke:var(--accent);stroke-width:2}
+.chart .ar{fill:var(--accent);opacity:.13;stroke:none}
+.chart .dot{fill:var(--accent);stroke:var(--surface);stroke-width:2}
+.trade{border-top:1px solid var(--line);padding:14px;display:grid;gap:12px}
+.tline{display:flex;flex-wrap:justify-content:space-between;gap:6px 16px;font-size:13px}
+.tline{display:flex;flex-wrap:wrap;justify-content:space-between;gap:6px 16px;font-size:13px}
+.tline span{color:var(--muted)}
+.qrow{display:grid;gap:6px}
+.qrow .frow input{width:110px}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;align-items:start}
+.log{list-style:none;margin:0;padding:0}
+.log li{display:flex;justify-content:space-between;gap:10px;padding:8px 14px;border-top:1px solid var(--line);font-size:13px}
+.log li:first-child{border-top:0}
+.admin select{font:inherit;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:4px;padding:8px 10px;min-width:0;max-width:100%}
+.btn.alt.buy{background:transparent;color:var(--up);box-shadow:inset 0 0 0 2px var(--up)}
+.btn.alt.sell{background:transparent;color:var(--down);box-shadow:inset 0 0 0 2px var(--down)}
+.bar{height:4px;background:var(--line);border-radius:2px;overflow:hidden}
+.bar i{display:block;height:100%;width:100%;background:var(--accent);transform-origin:left}
+@media (prefers-reduced-motion:no-preference){.bar i{transition:transform .2s linear}}
+.clock-bar{display:flex;align-items:center;gap:10px;font-size:12px;color:var(--muted);padding:8px 12px;background:var(--soft);border-radius:6px;margin-bottom:12px}
+.clock-bar .bar{flex:1}
+
+/* ===== 상점 ===== */
+.shop-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px;padding:16px}
+.shop-card{background:var(--surface);border:1px solid var(--line);border-radius:10px;overflow:hidden;cursor:pointer;transition:box-shadow .15s,transform .15s}
+.shop-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.08);transform:translateY(-2px)}
+.shop-card-head{background:linear-gradient(135deg,var(--accent) 0%,#0773a0 100%);color:#fff;padding:18px 16px 14px;position:relative}
+.shop-card-head h3{font-size:16px;font-weight:700;margin-bottom:4px}
+.shop-card-head p{font-size:12px;opacity:.85}
+.shop-card-body{padding:14px 16px}
+.shop-card-body .meta{font-size:12px;color:var(--muted);margin-bottom:8px}
+.shop-card-footer{padding:0 16px 14px}
+.shop-add-card{border:2px dashed var(--line);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-height:160px;color:var(--muted);cursor:pointer;border-radius:10px;transition:border-color .15s,color .15s;background:var(--surface)}
+.shop-add-card:hover{border-color:var(--accent);color:var(--accent-text)}
+.shop-add-card .plus{font-size:36px;font-weight:300;line-height:1}
+.search-bar{display:flex;gap:10px;align-items:center;padding:14px 16px;border-bottom:1px solid var(--line)}
+.search-bar input{flex:1}
+.item-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;padding:14px 16px}
+.item-card{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:14px}
+.item-card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px}
+.item-card h4{font-size:14px;font-weight:600;margin:0}
+.item-price{font-family:var(--font-mono);font-size:16px;font-weight:700;color:var(--accent-text)}
+.item-qty{font-size:12px;color:var(--muted);margin-bottom:10px}
+.item-tags{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px}
+.item-tag{font-size:10px;padding:2px 7px;border-radius:10px;background:var(--soft);color:var(--muted);border:1px solid var(--line)}
+.delivery-info{font-size:12px;color:var(--muted);border-top:1px solid var(--line);padding-top:8px;margin-top:8px}
+.delivery-badge{display:inline-flex;align-items:center;gap:4px;font-size:11px;padding:2px 8px;border-radius:10px;background:var(--soft);border:1px solid var(--line);margin:2px 2px 2px 0}
+.stock-bar{height:4px;border-radius:2px;background:var(--line);overflow:hidden;margin-top:6px}
+.stock-bar-fill{height:100%;background:var(--accent);border-radius:2px}
+.shop-nav{display:flex;gap:0;border-bottom:1px solid var(--line)}
+.shop-nav-btn{all:unset;padding:12px 20px;font-size:14px;font-weight:500;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent;white-space:nowrap}
+.shop-nav-btn.on{color:var(--accent-text);border-bottom-color:var(--accent);font-weight:700}
+
+/* 매수글 */
+.buy-req-item{display:flex;align-items:center;gap:14px;padding:14px 16px;border-top:1px solid var(--line)}
+.buy-req-item:first-child{border-top:0}
+.buy-req-item .info{flex:1;min-width:0}
+.buy-req-item .info h4{font-size:14px;font-weight:600;margin:0 0 2px}
+.buy-req-item .info p{font-size:12px;color:var(--muted);margin:0}
+.buy-req-item .price-col{text-align:right;white-space:nowrap}
+.buy-req-item .price-col .p{font-family:var(--font-mono);font-weight:700;font-size:15px;color:var(--accent-text)}
+.buy-req-item .price-col small{display:block;font-size:11px;color:var(--muted)}
+
+/* 코드 결제 */
+.code-box{max-width:480px;margin:0 auto;padding:40px 20px;text-align:center;display:grid;gap:16px}
+.code-box h2{font-size:22px;font-weight:700}
+.code-box p{color:var(--muted);font-size:14px}
+.code-input-wrap{display:flex;gap:10px}
+.code-input-wrap input{flex:1;font-size:18px;text-align:center;letter-spacing:.1em;font-family:var(--font-mono);text-transform:uppercase}
+.code-result{background:var(--soft);border:1px solid var(--line);border-radius:8px;padding:20px;text-align:left;display:grid;gap:10px}
+.code-result h3{font-size:16px;font-weight:700}
+.code-result .code-price{font-family:var(--font-mono);font-size:24px;font-weight:700;color:var(--accent-text)}
+.qty-stepper{display:flex;align-items:center;gap:10px}
+.qty-stepper button{all:unset;width:36px;height:36px;border:1px solid var(--line);border-radius:6px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:20px;background:var(--surface)}
+.qty-stepper button:hover{border-color:var(--accent)}
+.qty-stepper input{width:80px;text-align:center;font-family:var(--font-mono)}
+
+/* 반응형 */
+@media (max-width:900px){
+  .sidebar{width:160px}
+  .cols,.two{grid-template-columns:minmax(0,1fr)}
+  .stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .stats>div:nth-child(3){border-left:0}
+  .stats>div:nth-child(n+3){border-top:1px solid var(--line)}
+  .bank-cards{grid-template-columns:1fr 1fr}
+}
+@media (max-width:680px){
+  .sidebar{display:none}
+  .main-content{padding:14px 14px 40px}
+  .bank-cards{grid-template-columns:1fr}
+  .grid2,.grid3{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<!-- ============================================================
+     앱 레이아웃: 사이드바 + 메인
+============================================================ -->
+<div class="app-layout">
+
+  <!-- 사이드바 -->
+  <nav class="sidebar" aria-label="메뉴">
+    <div class="sidebar-brand">
+      <span class="logo" aria-hidden="true"></span>
+      <h1>다이아 거래소</h1>
+    </div>
+    <div class="sidebar-nav">
+      <button class="nav-item on" data-page="bank">
+        <span class="nav-icon">🏦</span> 통장
+      </button>
+      <button class="nav-item" data-page="stock">
+        <span class="nav-icon">📈</span> 주식
+      </button>
+      <button class="nav-item" data-page="shop">
+        <span class="nav-icon">🏪</span> 상점
+      </button>
+      <button class="nav-item" data-page="code">
+        <span class="nav-icon">🔑</span> 코드 결제
+      </button>
+      <!-- 관리자만 보임 -->
+      <div id="adminNavItem" hidden>
+        <hr style="border:0;border-top:1px solid var(--line);margin:8px 0">
+        <button class="nav-item" data-page="admin" style="color:var(--up)">
+          <span class="nav-icon">👑</span> 관리자
+        </button>
+      </div>
+    </div>
+    <div class="sidebar-bottom">
+      <div class="sidebar-user" id="sidebarUser">
+        <span style="color:var(--muted);font-size:13px">로그인이 필요합니다</span>
+      </div>
+      <button class="btn ghost sm" id="sidebarLogin" style="width:100%">로그인 / 가입</button>
+      <button class="btn ghost sm" id="sidebarLogout" style="width:100%" hidden>로그아웃</button>
+      <!-- 구글 관리자 로그인 버튼 — 로그아웃 상태일 때만 보임 -->
+      <button class="btn sm" id="ownerLogin" style="width:100%;background:var(--up);color:#fff;display:none">
+        👑 관리자 로그인
+      </button>
+    </div>
+  </nav>
+
+  <!-- 메인 -->
+  <main class="main-content">
+    <p id="notice" class="notice" role="status" hidden></p>
+
+    <!-- ========= 통장 페이지 ========= -->
+    <div class="page on" id="page-bank">
+      <div class="wrap">
+        <div class="bank-hero" id="bankHero">
+          <div>
+            <div class="label">내 보유 코인</div>
+            <div class="balance num" id="bankBalance">–</div>
+          </div>
+          <div style="text-align:right">
+            <div class="label" style="margin-bottom:4px">닉네임</div>
+            <div style="font-weight:700;font-size:18px" id="bankNick">로그인 필요</div>
+          </div>
+        </div>
+
+        <div class="bank-cards" id="bankCards">
+          <div class="bank-card">
+            <dt>주식 평가액</dt>
+            <dd class="num" id="bk-hv">–</dd>
+          </div>
+          <div class="bank-card">
+            <dt>순자산</dt>
+            <dd class="num" id="bk-net">–</dd>
+          </div>
+          <div class="bank-card">
+            <dt>손익</dt>
+            <dd class="num" id="bk-pl">–</dd>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head">최근 거래 내역</div>
+          <div id="bankLog"></div>
+        </div>
+
+        <!-- 가입/로그인 안내 -->
+        <div class="panel" id="bankJoinBox">
+          <div class="pad">
+            <p style="margin-bottom:14px;font-weight:600">처음 오셨나요? 가입하고 시작하세요!</p>
+            <p class="foot" style="margin-bottom:12px">ID(마크 닉네임)와 비밀번호를 정해서 가입하거나, 이미 계정이 있으면 로그인하세요. 방장에게 다이아를 주면 코인을 지급받을 수 있습니다.</p>
+            <button class="btn" id="bankLoginOpenBtn">로그인 / 가입하기</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========= 주식 페이지 ========= -->
+    <div class="page" id="page-stock">
+      <div class="wrap">
+        <div class="clock-bar">
+          <span><b id="cd" class="num">2</b>초 뒤 시세가 바뀝니다</span>
+          <div class="bar" style="flex:1"><i id="cdbar"></i></div>
+        </div>
+
+        <section class="panel" aria-label="내 자산">
+          <dl id="stats" class="stats">
+            <div><dt>보유 코인</dt><dd id="s-coins" class="num">–</dd></div>
+            <div><dt>주식 평가액</dt><dd id="s-hv" class="num">–</dd></div>
+            <div><dt>순자산</dt><dd id="s-net" class="num">–</dd></div>
+            <div><dt>손익</dt><dd id="s-pl" class="num">–</dd></div>
+          </dl>
+        </section>
+
+        <div class="cols">
+          <section class="panel" aria-label="종목 목록">
+            <h2>종목</h2>
+            <div id="list"></div>
+          </section>
+          <section class="panel" aria-label="차트와 주문">
+            <div id="quote" class="quote"></div>
+            <div id="chart" class="chart"></div>
+            <div class="trade">
+              <div class="tline"><span>내 보유</span><b id="t-held" class="num"></b></div>
+              <div class="tline"><span>평균 매수가</span><b id="t-avg" class="num"></b></div>
+              <div class="qrow">
+                <label for="qty">수량</label>
+                <div class="frow">
+                  <input id="qty" type="number" min="1" step="1" value="1" inputmode="numeric" style="width:90px">
+                  <button type="button" class="chip" data-q="1">1</button>
+                  <button type="button" class="chip" data-q="5">5</button>
+                  <button type="button" class="chip" data-q="10">10</button>
+                  <button type="button" class="chip" data-q="maxbuy">최대 매수</button>
+                  <button type="button" class="chip" data-q="all">전량</button>
+                </div>
+              </div>
+              <div class="tline"><span>예상 금액</span><b id="t-total" class="num"></b></div>
+              <div class="actions">
+                <button type="button" class="btn buy" id="buy">매수</button>
+                <button type="button" class="btn sell" id="sell">매도</button>
+              </div>
+              <div class="qrow">
+                <label>배율 (배율 매수·공매도에 적용)</label>
+                <div class="frow" id="levs">
+                  <button type="button" class="chip" data-l="1">x1</button>
+                  <button type="button" class="chip on" data-l="2">x2</button>
+                  <button type="button" class="chip" data-l="3">x3</button>
+                  <button type="button" class="chip" data-l="5">x5</button>
+                  <button type="button" class="chip" data-l="10">x10</button>
+                </div>
+              </div>
+              <div class="actions">
+                <button type="button" class="btn buy alt" id="lbuy">배율 매수</button>
+                <button type="button" class="btn sell alt" id="short">공매도</button>
+              </div>
+              <p id="lev-info" class="foot"></p>
+              <p id="t-hint" class="hint" aria-live="polite"></p>
+            </div>
+          </section>
+        </div>
+
+        <section class="panel" aria-label="내 포지션">
+          <h2>내 포지션 (배율 매수·공매도)</h2>
+          <div id="pos"></div>
+        </section>
+
+        <section class="panel" aria-label="내 보유 종목">
+          <h2>내 보유 종목</h2>
+          <div id="hold"></div>
+        </section>
+
+        <div class="two">
+          <section class="panel" aria-label="랭킹">
+            <h2>랭킹 (손익 기준)</h2>
+            <div id="board"></div>
+          </section>
+          <section class="panel" aria-label="내 거래 기록">
+            <h2>최근 거래</h2>
+            <div id="log"></div>
+          </section>
+        </div>
+
+        <p class="foot">주가는 현재 시각으로 계산되는 가상 시세라서 접속한 모든 사람에게 똑같이 보입니다.</p>
+      </div>
+    </div>
+
+    <!-- ========= 관리자 페이지 ========= -->
+    <div class="page" id="page-admin">
+      <!-- 미로그인 상태 -->
+      <div id="adminLoginBox">
+        <div style="max-width:420px;margin:60px auto;text-align:center;padding:20px">
+          <div style="font-size:56px;margin-bottom:16px">👑</div>
+          <h2 style="font-size:22px;font-weight:700;margin-bottom:8px">관리자 전용 페이지</h2>
+          <p style="color:var(--muted);margin-bottom:28px;font-size:14px">허용된 구글 계정으로 로그인해야 접근할 수 있습니다.<br>일반 계정으로 로그인하면 접근이 거부됩니다.</p>
+          <button class="btn" id="adminGoogleLoginBtn" style="width:100%;max-width:280px;display:flex;align-items:center;justify-content:center;gap:10px;margin:0 auto;font-size:15px">
+            <svg width="20" height="20" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/><path fill="none" d="M0 0h48v48H0z"/></svg>
+            Google 계정으로 관리자 로그인
+          </button>
+          <p id="adminLoginMsg" class="hint" style="margin-top:14px;text-align:center"></p>
+        </div>
+      </div>
+
+      <!-- 관리자 콘텐츠 -->
+      <div id="adminContent" hidden>
+        <div class="wrap">
+
+          <!-- 헤더 -->
+          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+            <div>
+              <h2 style="font-size:20px;font-weight:700;display:flex;align-items:center;gap:8px">👑 관리자 패널</h2>
+              <p class="foot" id="adminWelcome"></p>
+            </div>
+            <button class="btn ghost sm" id="adminLogoutBtn">관리자 로그아웃</button>
+          </div>
+
+          <!-- 통계 요약 -->
+          <div class="panel">
+            <div class="panel-head">📊 서버 현황</div>
+            <div class="stats" id="adminStats">
+              <div><dt>총 참가자</dt><dd id="adm-players" class="num">–</dd></div>
+              <div><dt>총 발행 코인</dt><dd id="adm-issued" class="num">–</dd></div>
+              <div><dt>총 상점 수</dt><dd id="adm-shops" class="num">–</dd></div>
+              <div><dt>총 매수글</dt><dd id="adm-buyreqs" class="num">–</dd></div>
+            </div>
+          </div>
+
+          <!-- 코인 지급/회수 -->
+          <div class="panel">
+            <div class="panel-head">💰 코인 지급 / 회수</div>
+            <div class="pad" style="display:grid;gap:14px">
+              <p class="foot">다이아를 받았으면 해당 플레이어를 선택하고 코인을 지급하세요. 잘못 지급했다면 회수로 되돌릴 수 있습니다. 지급 총액이 그 플레이어의 손익 계산 기준이 됩니다.</p>
+              <div class="frow" style="gap:10px;flex-wrap:wrap">
+                <div>
+                  <label for="a-who">대상 플레이어</label>
+                  <select id="a-who" style="min-width:160px"></select>
+                </div>
+                <div>
+                  <label for="a-amt">코인 수량</label>
+                  <input id="a-amt" type="number" min="1" step="1" value="100" inputmode="numeric" style="width:120px">
+                </div>
+                <div style="display:flex;gap:6px;align-items:flex-end">
+                  <button type="button" class="chip" data-a="100">+100</button>
+                  <button type="button" class="chip" data-a="500">+500</button>
+                  <button type="button" class="chip" data-a="1000">+1000</button>
+                  <button type="button" class="chip" data-a="5000">+5000</button>
+                </div>
+              </div>
+              <div class="frow">
+                <button type="button" class="btn" id="a-give">💰 지급</button>
+                <button type="button" class="btn ghost" id="a-take">↩️ 회수</button>
+              </div>
+              <p id="a-msg" class="hint" aria-live="polite"></p>
+              <div id="a-hist"></div>
+            </div>
+          </div>
+
+          <!-- 플레이어 목록 -->
+          <div class="panel">
+            <div class="panel-head">
+              <span>👥 플레이어 목록 & 자산 현황</span>
+              <button class="btn ghost sm" id="adminRefreshBtn">새로고침</button>
+            </div>
+            <div class="scroll">
+              <table id="adminPlayerTable" style="min-width:600px">
+                <thead><tr><th>닉네임</th><th>보유 코인</th><th>주식 평가액</th><th>순자산</th><th>손익</th><th>지급 총액</th><th>거래 횟수</th></tr></thead>
+                <tbody id="adminPlayerBody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- 시세 조작 -->
+          <div class="panel">
+            <div class="panel-head">📈 시세 조작</div>
+            <div class="pad" style="display:grid;gap:14px">
+              <p class="foot">일반 참가자에게는 이 패널이 보이지 않습니다. 선택한 종목의 시세 방향을 즉시 바꿉니다.<br>폭등·폭락은 약 12초 동안 급격히 움직이고, <b>자동으로 되돌리기</b>를 누르면 원래 흐름으로 돌아갑니다.</p>
+              <div class="frow" style="gap:10px;flex-wrap:wrap">
+                <div>
+                  <label for="m-sym">종목 선택</label>
+                  <select id="m-sym" style="min-width:160px"></select>
+                </div>
+                <div>
+                  <label for="m-dur">지속 시간</label>
+                  <select id="m-dur" style="min-width:120px">
+                    <option value="1">1분</option>
+                    <option value="3" selected>3분</option>
+                    <option value="10">10분</option>
+                    <option value="0">되돌릴 때까지</option>
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label style="margin-bottom:8px;display:block">일반 조작</label>
+                <div class="frow">
+                  <button type="button" class="btn buy" data-m="up">▲ 상승</button>
+                  <button type="button" class="btn sell" data-m="down">▼ 하락</button>
+                  <button type="button" class="btn ghost" data-m="flat">➡ 횡보</button>
+                  <button type="button" class="btn ghost" data-m="auto">🔄 자동으로 되돌리기</button>
+                </div>
+              </div>
+              <div>
+                <label style="margin-bottom:8px;display:block">특수 조작 (약 12초 급변)</label>
+                <div class="frow">
+                  <button type="button" class="btn buy alt" data-m="surge">🚀 폭등</button>
+                  <button type="button" class="btn sell alt" data-m="crash">💥 폭락</button>
+                </div>
+              </div>
+              <div style="background:var(--soft);border:1px solid var(--line);border-radius:8px;padding:12px 16px">
+                <div style="font-size:12px;color:var(--muted);margin-bottom:4px">현재 조작 상태</div>
+                <p id="m-state" style="font-weight:600;margin:0"></p>
+              </div>
+              <p id="m-msg" class="hint" aria-live="polite"></p>
+            </div>
+          </div>
+
+          <!-- 주문 내역 -->
+          <div class="panel">
+            <div class="panel-head">🧾 최근 상점 주문 내역</div>
+            <div class="scroll">
+              <table id="adminOrderTable" style="min-width:640px">
+                <thead><tr><th>시간</th><th>구매자</th><th>판매자</th><th>아이템</th><th>수량</th><th>금액</th><th>거래방식</th><th>상태</th></tr></thead>
+                <tbody id="adminOrderBody"><tr><td colspan="8" class="empty">주문 내역을 불러오는 중...</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- 상점 관리 -->
+          <div class="panel">
+            <div class="panel-head">🏪 상점 관리</div>
+            <div class="pad" style="display:grid;gap:14px">
+              <p class="foot">등록된 상점을 수정하거나 삭제할 수 있습니다. 삭제하면 아이템 목록도 모두 사라지며 되돌릴 수 없습니다.</p>
+              <div id="adminShopList"><p class="empty">상점 정보를 불러오는 중...</p></div>
+              <p id="adminShopHint" class="hint" aria-live="polite"></p>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- ========= 상점 페이지 ========= -->
+    <div class="page" id="page-shop">
+      <div class="wrap">
+        <nav class="panel shop-nav" style="border-radius:8px;overflow:hidden;border:1px solid var(--line)">
+          <button class="shop-nav-btn on" data-stab="market">🛒 시장</button>
+          <button class="shop-nav-btn" data-stab="buyreq">📋 매수글</button>
+        </nav>
+
+        <!-- 시장 탭 -->
+        <div id="stab-market">
+          <!-- 상점 목록 -->
+          <div id="shopListView">
+            <div class="panel">
+              <div class="panel-head">
+                <span>등록된 상점</span>
+                <button class="btn sm" id="createShopBtn">+ 내 상점 만들기</button>
+              </div>
+              <div class="shop-grid" id="shopGrid">
+                <div class="empty" style="grid-column:1/-1">상점을 불러오는 중...</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 상점 상세 뷰 -->
+          <div id="shopDetailView" hidden>
+            <div class="panel">
+              <div class="panel-head" id="shopDetailHead">
+                <span></span>
+                <div class="frow">
+                  <button class="btn ghost sm" id="shopDetailBack">← 목록으로</button>
+                  <button class="btn sm" id="shopEditBtn" hidden>✏️ 편집</button>
+                  <button class="btn sm" id="addItemBtn" hidden>+ 아이템 추가</button>
+                </div>
+              </div>
+              <div class="pad" id="shopDetailInfo" style="border-bottom:1px solid var(--line)"></div>
+              <div class="search-bar">
+                <input type="text" id="itemSearch" placeholder="🔍 아이템 검색..." style="max-width:320px">
+                <div class="tags-row" id="tagFilter" style="padding:0;flex:1;overflow-x:auto;white-space:nowrap;flex-wrap:nowrap"></div>
+              </div>
+              <div class="item-grid" id="itemGrid"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 매수글 탭 -->
+        <div id="stab-buyreq" hidden>
+          <div class="panel">
+            <div class="panel-head">
+              <span>매수글 (구하는 아이템)</span>
+              <button class="btn sm" id="createBuyReqBtn">+ 매수글 올리기</button>
+            </div>
+            <div id="buyReqList">
+              <div class="empty">매수글이 없습니다.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========= 코드 결제 페이지 ========= -->
+    <div class="page" id="page-code">
+      <div class="code-box">
+        <div>
+          <div style="font-size:40px;margin-bottom:8px">🔑</div>
+          <h2>코드 결제</h2>
+          <p>판매자에게 받은 상품 코드를 입력하면 바로 결제할 수 있습니다.<br>마인크래프트 안에서 편하게 사용하세요.</p>
+        </div>
+        <div class="code-input-wrap">
+          <input type="text" id="codeInput" placeholder="XXXX-XXXX" maxlength="20" autocomplete="off">
+          <button class="btn" id="codeSearchBtn">검색</button>
+        </div>
+        <div id="codeResult" hidden></div>
+        <p id="codeHint" class="hint" style="text-align:center"></p>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- ===== 로그인 / 가입 모달 ===== -->
+<div class="modal-bg" id="authModal">
+  <div class="modal">
+    <div class="modal-head">
+      <span id="authModalTitle">로그인 / 가입</span>
+      <button class="close-btn" data-close="authModal">✕</button>
+    </div>
+    <div class="modal-body">
+      <p class="foot" style="margin-bottom:16px">처음이면 ID와 비밀번호를 정해서 <b>가입하기</b>를, 이미 계정이 있으면 <b>로그인</b>을 누르세요.<br>ID는 마크 닉네임으로 하는 걸 추천합니다.</p>
+      <div class="form-group">
+        <label for="authNick">ID (마크 닉네임, 2~12자)</label>
+        <input id="authNick" maxlength="12" autocomplete="username" placeholder="닉네임">
+      </div>
+      <div class="form-group">
+        <label for="authPw">비밀번호 (6자 이상)</label>
+        <input id="authPw" type="password" autocomplete="current-password" placeholder="비밀번호">
+      </div>
+      <p id="authMsg" class="notice err" hidden></p>
+    </div>
+    <div class="modal-foot">
+      <button class="btn ghost" id="authLoginBtn">로그인</button>
+      <button class="btn" id="authSignupBtn">가입하기</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 상점 만들기/편집 모달 ===== -->
+<div class="modal-bg" id="shopModal">
+  <div class="modal">
+    <div class="modal-head">
+      <span id="shopModalTitle">내 상점 만들기</span>
+      <button class="close-btn" data-close="shopModal">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label for="shopName">상점 이름</label>
+        <input id="shopName" maxlength="30" placeholder="예: 홍길동의 무기 상점">
+      </div>
+      <div class="form-group">
+        <label for="shopDesc">상점 설명</label>
+        <textarea id="shopDesc" maxlength="200" placeholder="상점 소개를 입력하세요..."></textarea>
+      </div>
+      <div class="form-group">
+        <label for="shopLocation">판매 장소 (마인크래프트 좌표 또는 설명)</label>
+        <input id="shopLocation" maxlength="100" placeholder="예: X:120 Y:64 Z:-350 / 마을 중앙 상점가">
+      </div>
+      <div class="form-group" style="display:flex;align-items:center;gap:12px">
+        <input type="checkbox" id="shopDelivery" style="width:auto;padding:0">
+        <label for="shopDelivery" style="display:inline;margin:0;cursor:pointer">판매자 직접 배달 가능 (추가 요금 설정 가능)</label>
+      </div>
+      <div class="form-group" id="shopDeliveryFeeBox" hidden>
+        <label for="shopDeliveryFee">배달 추가 요금 (코인, 0이면 무료)</label>
+        <input id="shopDeliveryFee" type="number" min="0" step="1" value="0" style="width:140px">
+      </div>
+      <p id="shopModalMsg" class="hint"></p>
+    </div>
+    <div class="modal-foot">
+      <button class="btn ghost" data-close="shopModal">취소</button>
+      <button class="btn" id="shopSaveBtn">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 아이템 추가/편집 모달 ===== -->
+<div class="modal-bg" id="itemModal">
+  <div class="modal">
+    <div class="modal-head">
+      <span id="itemModalTitle">아이템 추가</span>
+      <button class="close-btn" data-close="itemModal">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="grid2">
+        <div class="form-group">
+          <label for="itemName">아이템 이름</label>
+          <input id="itemName" maxlength="40" placeholder="예: 다이아몬드 검">
+        </div>
+        <div class="form-group">
+          <label for="itemCode">상품 코드 (직접 설정, 영숫자 4~12자)</label>
+          <input id="itemCode" maxlength="12" placeholder="예: DSWORD1" style="text-transform:uppercase">
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="itemDesc">아이템 설명 (옵션)</label>
+        <textarea id="itemDesc" maxlength="200" placeholder="아이템 상세 설명..."></textarea>
+      </div>
+      <div class="grid3">
+        <div class="form-group">
+          <label for="itemPrice">가격 (코인)</label>
+          <input id="itemPrice" type="number" min="1" step="1" placeholder="0">
+        </div>
+        <div class="form-group">
+          <label for="itemStock">재고 수량</label>
+          <input id="itemStock" type="number" min="0" step="1" placeholder="재고">
+        </div>
+        <div class="form-group">
+          <label for="itemMinQty">최소 구매 수량</label>
+          <input id="itemMinQty" type="number" min="1" step="1" value="1">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>태그 선택 (여러 개 선택 가능)</label>
+        <div class="frow" id="itemTagSelect" style="gap:6px;flex-wrap:wrap"></div>
+      </div>
+      <div class="form-group">
+        <label>거래 방식</label>
+        <div style="display:grid;gap:8px">
+          <label style="display:flex;align-items:center;gap:8px;font-size:14px;color:var(--fg)">
+            <input type="checkbox" id="tradeVisit" checked style="width:auto;padding:0"> 판매 장소에 직접 방문 (구매자가 옴)
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:14px;color:var(--fg)">
+            <input type="checkbox" id="tradeSend" style="width:auto;padding:0"> 판매자가 직접 배달 가능
+          </label>
+          <div id="tradeSendFeeBox" hidden style="padding-left:24px">
+            <label for="tradeSendFee">판매자 배달 추가 요금 (코인)</label>
+            <input id="tradeSendFee" type="number" min="0" step="1" value="0" style="width:140px">
+          </div>
+        </div>
+      </div>
+      <p class="foot">※ 구매자 측 배달(택배)은 한 세트당 +100코인이 자동으로 붙습니다.</p>
+      <p id="itemModalMsg" class="hint"></p>
+    </div>
+    <div class="modal-foot">
+      <button class="btn ghost" data-close="itemModal">취소</button>
+      <button class="btn" id="itemSaveBtn">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 아이템 구매 모달 ===== -->
+<div class="modal-bg" id="buyModal">
+  <div class="modal">
+    <div class="modal-head">
+      <span id="buyModalTitle">아이템 구매</span>
+      <button class="close-btn" data-close="buyModal">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="buyModalInfo" style="margin-bottom:16px"></div>
+      <div class="form-group">
+        <label>수량</label>
+        <div class="qty-stepper">
+          <button id="buyQtyMinus">−</button>
+          <input type="number" id="buyQty" min="1" step="1" value="1">
+          <button id="buyQtyPlus">+</button>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>거래 방식 선택</label>
+        <div style="display:grid;gap:8px" id="buyTradeOpts"></div>
+      </div>
+      <div id="buyDeliveryCoordBox" class="form-group" hidden>
+        <label for="buyDeliveryCoord">받을 위치 (마인크래프트 좌표 또는 설명)</label>
+        <input id="buyDeliveryCoord" maxlength="100" placeholder="예: X:50 Y:64 Z:200 / 집 앞">
+      </div>
+      <div class="form-group" style="background:var(--soft);border-radius:8px;padding:14px;border:1px solid var(--line)">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span>총 결제 금액</span>
+          <span class="num" id="buyTotal" style="font-size:20px;font-weight:700;color:var(--accent-text)">–</span>
+        </div>
+        <div style="font-size:12px;color:var(--muted);margin-top:4px" id="buyPriceBreak"></div>
+      </div>
+      <p id="buyModalMsg" class="hint"></p>
+    </div>
+    <div class="modal-foot">
+      <button class="btn ghost" data-close="buyModal">취소</button>
+      <button class="btn buy" id="buyConfirmBtn">구매하기</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 매수글 올리기 모달 ===== -->
+<div class="modal-bg" id="buyReqModal">
+  <div class="modal">
+    <div class="modal-head">
+      <span>매수글 올리기</span>
+      <button class="close-btn" data-close="buyReqModal">✕</button>
+    </div>
+    <div class="modal-body">
+      <p class="foot" style="margin-bottom:14px">원하는 아이템을 구한다는 글을 올려보세요. 판매자가 연락하거나 직접 판매해줄 수 있습니다.</p>
+      <div class="grid2">
+        <div class="form-group">
+          <label for="brItemName">구하는 아이템 이름</label>
+          <input id="brItemName" maxlength="40" placeholder="예: 다이아몬드 갑옷">
+        </div>
+        <div class="form-group">
+          <label for="brQty">수량</label>
+          <input id="brQty" type="number" min="1" step="1" placeholder="1">
+        </div>
+      </div>
+      <div class="grid2">
+        <div class="form-group">
+          <label for="brPrice">제시 가격 (코인, 개당)</label>
+          <input id="brPrice" type="number" min="0" step="1" placeholder="0">
+        </div>
+        <div class="form-group">
+          <label for="brTradeType">거래 방식</label>
+          <select id="brTradeType">
+            <option value="visit">판매 장소 직접 방문</option>
+            <option value="seller_deliver">판매자가 나에게 배달</option>
+            <option value="buyer_deliver">구매자 배달 (+100코인/세트)</option>
+            <option value="any">무관</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="brLocation">받을 위치 또는 연락 방법 (옵션)</label>
+        <input id="brLocation" maxlength="100" placeholder="예: X:50 Y:64 Z:200 / 마크 닉네임으로 DM">
+      </div>
+      <div class="form-group">
+        <label for="brNote">추가 메모 (옵션)</label>
+        <textarea id="brNote" maxlength="200" placeholder="인챈트 조건, 색상 등 세부사항..."></textarea>
+      </div>
+      <p id="brMsg" class="hint"></p>
+    </div>
+    <div class="modal-foot">
+      <button class="btn ghost" data-close="buyReqModal">취소</button>
+      <button class="btn" id="brSaveBtn">올리기</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 아이템 재고 편집 모달 ===== -->
+<div class="modal-bg" id="stockModal">
+  <div class="modal" style="max-width:360px">
+    <div class="modal-head">
+      <span>재고 관리</span>
+      <button class="close-btn" data-close="stockModal">✕</button>
+    </div>
+    <div class="modal-body">
+      <p id="stockItemName" style="font-weight:600;margin-bottom:12px"></p>
+      <div class="form-group">
+        <label>현재 재고</label>
+        <div class="qty-stepper">
+          <button id="stockMinus">−</button>
+          <input type="number" id="stockQty" min="0" step="1" value="0">
+          <button id="stockPlus">+</button>
+        </div>
+      </div>
+      <p id="stockMsg" class="hint"></p>
+    </div>
+    <div class="modal-foot">
+      <button class="btn ghost" data-close="stockModal">취소</button>
+      <button class="btn" id="stockSaveBtn">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     Firebase 설정
+============================================================ -->
+<script>
+window.APP_CONFIG = {
+  firebase: {
+    apiKey: "AIzaSyC4Z8psd6fk-ygZFVWG-wtoNRxesBVJETI",
+    authDomain: "ohije-f38c3.firebaseapp.com",
+    projectId: "ohije-f38c3",
+    appId: "1:362228759199:web:12080e7f9e72a14c7740aa"
+  }
+};
+</script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
+<script>
+/* ============================================================
+   메인 스크립트
+============================================================ */
+(function () {
+'use strict';
+
+/* ───── 유틸 ───── */
+var $ = function (id) { return document.getElementById(id); };
+var fmt = function (n) { return Math.round(n).toLocaleString('ko-KR'); };
+var sgn = function (n) { return (n > 0 ? '+' : n < 0 ? '−' : '') + fmt(Math.abs(n)); };
+var cls = function (n) { return n > 0 ? 'up' : n < 0 ? 'down' : 'flat'; };
+var arrow = function (n) { return n > 0 ? '▲' : n < 0 ? '▼' : '–'; };
+var pct = function (x) { return (x > 0 ? '+' : x < 0 ? '−' : '') + Math.abs(x * 100).toFixed(1) + '%'; };
+var esc = function (s) { return String(s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
+var uid2nick = function (id) { var p = players.find(function (x) { return x.id === id; }); return p ? p.nick : id; };
+function notice(msg, err) {
+  var n = $('notice'); n.textContent = msg || ''; n.hidden = !msg;
+  n.className = 'notice' + (err ? ' err' : '');
+}
+function say(el, text) {
+  el.textContent = text; el.dataset.keep = text ? '1' : '';
+  if (text) setTimeout(function () { if (el.textContent === text) { el.textContent = ''; el.dataset.keep = ''; } }, 4000);
+}
+
+/* ───── 아이템 태그 목록 ───── */
+var ITEM_TAGS = [
+  '⚔️ 무기','🛡️ 갑옷','🔧 장비','🍎 음식','✨ 버프','🔮 인챈트',
+  '⛏️ 광물','🏗️ 건축','🌿 자원','🧪 포션','📦 기타','🧰 도구',
+  '🐾 몬스터드롭','🌾 농업','💎 보석','🔥 특수'
+];
+
+/* ───── 주식 설정 ───── */
+var TICK = 2, WIN = 90, WINTXT = (WIN * TICK / 60) + '분';
+var STOCKS = [
+  { sym: 'KUK', name: '꾸익전자',     base: 400, vol: 1.0 },
+  { sym: 'JHH', name: '지호하이닉스', base: 250, vol: 1.2 },
+  { sym: 'MSD', name: '무싹따이야',   base: 600, vol: 1.5 },
+  { sym: 'DKK', name: '딸기코끼리',   base: 150, vol: 1.3 },
+  { sym: 'EMJ', name: '엄췌줘이야',   base: 300, vol: 0.8 }
+];
+
+/* ───── 시세 엔진 ───── */
+var S = 3600, W = 15000, CELL = 120, ctl = [], chains = {};
+function hash(n) {
+  n = Math.imul(n ^ 0x9e3779b9, 0x85ebca6b); n ^= n >>> 13;
+  n = Math.imul(n, 0xc2b2ae35); n ^= n >>> 16;
+  return (n >>> 0) / 4294967296;
+}
+function modeAt(sym, t) {
+  for (var k = ctl.length - 1; k >= 0; k--) {
+    var e = ctl[k];
+    if (e.t > t || (e.sym !== 'all' && e.sym !== sym) || (e.until && t >= e.until)) continue;
+    return e.mode === 'auto' ? null : e.mode;
+  }
+  return null;
+}
+function stepPrice(i, t, p) {
+  var s = STOCKS[i], m = modeAt(s.sym, t), d = 0;
+  if (m === 'surge') d = 0.022;
+  else if (m === 'crash') d = -0.022;
+  else {
+    var c = Math.floor((t + i * 37) / CELL), h = hash(c * 7 + i * 104729 + 13);
+    var r = p / s.base - 1;
+    var pu = Math.min(0.7, Math.max(0.05, 0.38 - 0.5 * r)), pd = Math.min(0.7, Math.max(0.05, 0.38 + 0.5 * r));
+    if (!m) m = h < pu ? 'up' : h < pu + pd ? 'down' : 'flat';
+    var str = (0.6 + 0.8 * hash(c * 11 + i * 97 + 3)) * 0.0015 * s.vol;
+    d = m === 'up' ? str : m === 'down' ? -str : 0;
+    d += (hash(t * 131 + i * 7919) * 2 - 1) * 0.004 * s.vol;
+    for (var k = 0; k < 5; k++) {
+      if (hash((t - k) * 977 + i * 6151 + 5) < 1 / 1500) { d += hash((t - k) * 31 + i) < 0.5 ? 0.025 : -0.025; break; }
+    }
+  }
+  d -= 0.0004 * (p / s.base - 1);
+  p = p * (1 + d);
+  return Math.min(s.base * 3, Math.max(s.base * 0.3, p));
+}
+function chainFor(t) {
+  var g = Math.floor(t / S), c = chains[g];
+  if (!c) {
+    if (Object.keys(chains).length > 3) chains = {};
+    var st = g * S - W;
+    c = chains[g] = { st: st, a: STOCKS.map(function (s, i) {
+      var arr = new Array(S + W), p = s.base;
+      for (var k = 0; k < S + W; k++) { p = stepPrice(i, st + k, p); arr[k] = p; }
+      return arr;
+    }) };
+  }
+  return c;
+}
+function priceAt(i, t) { var c = chainFor(t); return Math.max(1, Math.round(c.a[i][t - c.st])); }
+function nowTick() { return Math.floor(Date.now() / (TICK * 1000)); }
+
+/* ───── 앱 상태 ───── */
+var db = null, auth = null;
+var user = null, uid = null;
+var players = [], grants = {}, loaded = false;
+var sel = 0, busy = false, isOwner = false, LEV = 2, pressing = false, liqBusy = false;
+var orders = [];
+/* 상점 */
+var shops = [], currentShopId = null, currentShopItems = [], buyReqs = [];
+/* 구매 모달용 */
+var buyingItem = null, buyingShop = null;
+/* 아이템 편집 */
+var editingItem = null;
+/* 재고 편집 */
+var stockEditItemId = null;
+
+function myDoc() { return players.find(function (p) { return p.id === uid; }) || null; }
+var SI = {}; STOCKS.forEach(function (s, i) { SI[s.sym] = i; });
+var lq = {};
+function liqOf(o, t) {
+  var m = lq[o.id];
+  if (!m) m = lq[o.id] = { k: Math.max(o.tick || 0, t - 2 * S) - 1, liq: false };
+  if (m.liq) return true;
+  var i = SI[o.sym], d = o.dir === 'S' ? -1 : 1;
+  for (var k = m.k + 1; k <= t; k++) { if (d * (priceAt(i, k) - o.entry) * o.q <= -o.margin) { m.liq = true; break; } }
+  m.k = t;
+  return m.liq;
+}
+function evalPos(o, t) {
+  var cur = priceAt(SI[o.sym], t), d = o.dir === 'S' ? -1 : 1, liq = liqOf(o, t);
+  var pnl = liq ? -o.margin : Math.max(-o.margin, d * (cur - o.entry) * o.q);
+  return { cur: cur, pnl: pnl, liq: liq, eq: o.margin + pnl, lp: o.entry - d * o.margin / o.q };
+}
+function calcAssets(p, g, t) {
+  var dep = (g && g.total) || 0, coins = dep + (p.cash || 0), hv = 0;
+  STOCKS.forEach(function (s, i) {
+    var h = p.holdings && p.holdings[s.sym];
+    if (h && h.qty > 0) hv += h.qty * priceAt(i, t);
+  });
+  (p.pos || []).forEach(function (o) { hv += evalPos(o, t).eq; });
+  return { coins: coins, hv: hv, net: coins + hv, dep: dep, pl: coins + hv - dep };
+}
+
+/* ───── 페이지 전환 ───── */
+var currentPage = 'bank';
+function goPage(id) {
+  /* 관리자 페이지는 누구나 접근 가능 — 미로그인 시 loginBox, 로그인 시 콘텐츠 표시 */
+  currentPage = id;
+  document.querySelectorAll('.page').forEach(function (el) { el.classList.toggle('on', el.id === 'page-' + id); });
+  document.querySelectorAll('.nav-item[data-page]').forEach(function (el) { el.classList.toggle('on', el.dataset.page === id); });
+  if (id === 'admin') renderAdmin();
+}
+document.querySelectorAll('.nav-item[data-page]').forEach(function (btn) {
+  btn.addEventListener('click', function () { goPage(btn.dataset.page); });
+});
+
+/* ───── 모달 ───── */
+function openModal(id) { $(id).classList.add('on'); }
+function closeModal(id) { $(id).classList.remove('on'); }
+document.querySelectorAll('[data-close]').forEach(function (btn) {
+  btn.addEventListener('click', function () { closeModal(btn.dataset.close); });
+});
+document.querySelectorAll('.modal-bg').forEach(function (bg) {
+  bg.addEventListener('click', function (e) { if (e.target === bg) bg.classList.remove('on'); });
+});
+
+/* ───── 로그인 / 가입 ───── */
+function idEmail(id) {
+  var h = ''; id = id.toLowerCase();
+  for (var i = 0; i < id.length; i++) h += ('000' + id.charCodeAt(i).toString(16)).slice(-4);
+  return h + '@minestock.game';
+}
+function authMsg(e) {
+  var c = e && e.code;
+  if (c === 'auth/email-already-in-use') return '이미 사용 중인 ID입니다. 로그인을 눌러보세요.';
+  if (c === 'auth/weak-password') return '비밀번호는 6자 이상이어야 합니다.';
+  if (c === 'auth/invalid-credential' || c === 'auth/wrong-password' || c === 'auth/user-not-found' || c === 'auth/invalid-login-credentials') return 'ID 또는 비밀번호가 맞지 않습니다.';
+  if (c === 'auth/operation-not-allowed') return 'Firebase에서 이메일/비밀번호 로그인이 아직 켜져 있지 않습니다.';
+  if (c === 'auth/too-many-requests') return '시도가 너무 많습니다. 잠시 뒤 다시 해 보세요.';
+  return '오류가 발생했습니다. 다시 시도하세요.';
+}
+async function doAuth(mode) {
+  if (!db || busy) return;
+  var nick = $('authNick').value.trim(), pw = $('authPw').value;
+  var msg = $('authMsg');
+  msg.hidden = true;
+  if (nick.length < 2) { msg.textContent = 'ID는 2자 이상 입력하세요.'; msg.hidden = false; return; }
+  if (pw.length < 6) { msg.textContent = '비밀번호는 6자 이상 입력하세요.'; msg.hidden = false; return; }
+  busy = true; $('authLoginBtn').disabled = $('authSignupBtn').disabled = true;
+  try {
+    var email = idEmail(nick), cur = auth.currentUser;
+    if (mode === 'login') await auth.signInWithEmailAndPassword(email, pw);
+    else if (cur && cur.isAnonymous) await cur.linkWithCredential(firebase.auth.EmailAuthProvider.credential(email, pw));
+    else await auth.createUserWithEmailAndPassword(email, pw);
+    uid = auth.currentUser.uid;
+    var ref = db.doc('players/' + uid), snap = await ref.get();
+    if (!snap.exists) await ref.set({ nick: nick.slice(0, 12), cash: 0, realized: 0, trades: 0, holdings: {}, pos: [], log: [], joinedAt: Date.now() });
+    $('authPw').value = ''; closeModal('authModal'); notice('');
+  } catch (e) { msg.textContent = authMsg(e); msg.hidden = false; }
+  busy = false; $('authLoginBtn').disabled = $('authSignupBtn').disabled = false;
+}
+$('authLoginBtn').addEventListener('click', function () { doAuth('login'); });
+$('authSignupBtn').addEventListener('click', function () { doAuth('signup'); });
+function openAuth() { openModal('authModal'); }
+$('sidebarLogin').addEventListener('click', openAuth);
+$('bankLoginOpenBtn').addEventListener('click', openAuth);
+$('sidebarLogout').addEventListener('click', function () { if (auth) auth.signOut(); });
+
+/* 관리자 구글 로그인 — 사이드바 버튼 */
+$('ownerLogin').addEventListener('click', function () {
+  if (!auth) return;
+  var provider = new firebase.auth.GoogleAuthProvider();
+  auth.signInWithPopup(provider).catch(function (e) {
+    notice('관리자 로그인에 실패했습니다: ' + (e.message || e), true);
+  });
+});
+/* 관리자 페이지 내 구글 로그인 버튼 */
+$('adminGoogleLoginBtn').addEventListener('click', function () {
+  if (!auth) return;
+  var provider = new firebase.auth.GoogleAuthProvider();
+  $('adminLoginMsg').textContent = '구글 로그인 창을 여는 중...';
+  auth.signInWithPopup(provider).then(function () {
+    $('adminLoginMsg').textContent = '';
+  }).catch(function (e) {
+    $('adminLoginMsg').textContent = '로그인 실패: ' + (e.message || e);
+  });
+});
+/* 관리자 로그아웃 버튼 */
+$('adminLogoutBtn').addEventListener('click', function () {
+  if (auth) auth.signOut();
+});
+
+/* ───── 사이드바 유저 렌더 ───── */
+function renderSidebarUser() {
+  var me = myDoc();
+  if (me) {
+    $('sidebarUser').innerHTML = '<b>' + esc(me.nick) + '</b>' +
+      (isOwner ? '<span style="color:#a78bfa;font-size:11px;display:block">👑 관리자</span>' : '');
+    $('sidebarLogin').hidden = true;
+    $('sidebarLogout').hidden = false;
+    $('bankJoinBox').hidden = true;
+  } else if (isOwner) {
+    /* 구글 관리자로만 로그인된 경우 */
+    var u = auth && auth.currentUser;
+    $('sidebarUser').innerHTML = '<b>' + esc(u && u.displayName || '관리자') + '</b>' +
+      '<span style="color:#a78bfa;font-size:11px;display:block">👑 관리자</span>';
+    $('sidebarLogin').hidden = true;
+    $('sidebarLogout').hidden = false;
+    $('bankJoinBox').hidden = true;
+  } else {
+    $('sidebarUser').innerHTML = '<span style="color:var(--muted);font-size:13px">로그인이 필요합니다</span>';
+    $('sidebarLogin').hidden = false;
+    $('sidebarLogout').hidden = true;
+    $('bankJoinBox').hidden = false;
+  }
+  /* 관리자 탭 & 사이드바 관리자 로그인 버튼 표시 여부 */
+  $('adminNavItem').hidden = false;
+  $('ownerLogin').style.display = !isOwner ? 'flex' : 'none';
+}
+
+/* ───── 통장 렌더 ───── */
+function renderBank() {
+  var me = myDoc(), t = nowTick();
+  if (!me) {
+    $('bankBalance').textContent = '–';
+    $('bankNick').textContent = '로그인 필요';
+    $('bk-hv').textContent = '–'; $('bk-net').textContent = '–'; $('bk-pl').textContent = '–';
+    $('bankLog').innerHTML = '<p class="empty">로그인하면 내 거래 내역을 볼 수 있습니다.</p>';
+    return;
+  }
+  var c = calcAssets(me, grants[uid], t);
+  $('bankBalance').textContent = fmt(c.coins) + ' 코인';
+  $('bankNick').textContent = me.nick;
+  $('bk-hv').textContent = fmt(c.hv) + ' 코인';
+  $('bk-net').textContent = fmt(c.net) + ' 코인';
+  $('bk-pl').className = 'num ' + cls(c.pl);
+  $('bk-pl').textContent = sgn(c.pl) + ' 코인';
+  /* 거래 로그 */
+  var logs = (me.log || []).slice().reverse();
+  if (!logs.length) { $('bankLog').innerHTML = '<p class="empty">거래 내역이 없습니다.</p>'; return; }
+  var SIDE = { buy:'매수', sell:'매도', long:'배율 매수', short:'공매도', liq:'청산', close:'청산', give:'코인 지급', take:'코인 회수', market_buy:'상점 구매' };
+  $('bankLog').innerHTML = '<ul class="tx-list">' + logs.slice(0, 30).map(function (e) {
+    var label = SIDE[e.side] || e.side;
+    var amtStr = e.pnl !== undefined ? sgn(e.pnl) + ' 코인' : (e.amt !== undefined ? sgn(e.amt) + ' 코인' : '');
+    var sub = e.sym ? (e.sym + ' ' + (e.q ? fmt(e.q) + '주' : '') + (e.price ? ' @' + fmt(e.price) : '')) : (e.item || '');
+    return '<li class="tx-item"><div class="tx-desc"><b>' + esc(label) + '</b><span>' + esc(sub) + '</span></div>' +
+      (amtStr ? '<span class="tx-amt ' + (e.pnl > 0 || e.amt > 0 ? 'up' : 'down') + '">' + amtStr + '</span>' : '') +
+      '<span class="num flat" style="font-size:11px;white-space:nowrap">' + new Date(e.t).toLocaleString('ko-KR', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }) + '</span></li>';
+  }).join('') + '</ul>';
+}
+
+/* ───── 주식 렌더 ───── */
+function spark(i, t) {
+  var pts = [], k, lo = Infinity, hi = -Infinity, n = 30;
+  for (k = n - 1; k >= 0; k--) { var v = priceAt(i, t - k); pts.push(v); lo = Math.min(lo, v); hi = Math.max(hi, v); }
+  var rng = (hi - lo) || 1;
+  var d = pts.map(function (v, j) { return (j ? 'L' : 'M') + (j * 72 / (n - 1)).toFixed(1) + ' ' + (22 - (v - lo) / rng * 20).toFixed(1); }).join('');
+  var c = cls(pts[n - 1] - pts[0]);
+  return '<svg class="spark ' + c + '" viewBox="0 0 72 24" preserveAspectRatio="none" aria-hidden="true"><path d="' + d + '"/></svg>';
+}
+function renderList() {
+  var t = nowTick(), me = myDoc();
+  $('list').innerHTML = STOCKS.map(function (s, i) {
+    var p = priceAt(i, t), d = p - priceAt(i, t - 1);
+    var h = me && me.holdings && me.holdings[s.sym];
+    var held = h && h.qty > 0 ? ' · 보유 ' + fmt(h.qty) + '주' : '';
+    return '<button type="button" class="row-stock' + (i === sel ? ' on' : '') + '" data-i="' + i + '">' +
+      '<span class="nm"><b class="sym">' + s.sym + '</b><span>' + esc(s.name) + held + '</span></span>' +
+      spark(i, t) +
+      '<span class="px"><b class="num">' + fmt(p) + '</b><span class="num ' + cls(d) + '">' + arrow(d) + ' ' + fmt(Math.abs(d)) + ' (' + pct(d / (p - d || 1)) + ')</span></span></button>';
+  }).join('');
+}
+function renderQuote() {
+  var t = nowTick(), s = STOCKS[sel], p = priceAt(sel, t);
+  var d1 = p - priceAt(sel, t - 1), d10 = p - priceAt(sel, t - (WIN - 1));
+  $('quote').innerHTML =
+    '<div><h3><span class="sym">' + s.sym + '</span> ' + esc(s.name) + '</h3>' +
+    '<span class="chg num ' + cls(d10) + '">' + WINTXT + ' 전보다 ' + arrow(d10) + ' ' + fmt(Math.abs(d10)) + ' (' + pct(d10 / (p - d10 || 1)) + ')</span></div>' +
+    '<div style="text-align:right"><div class="big num">' + fmt(p) + ' <small style="font-size:12px;font-weight:400">코인</small></div>' +
+    '<span class="chg num ' + cls(d1) + '">직전 시세보다 ' + arrow(d1) + ' ' + fmt(Math.abs(d1)) + '</span></div>';
+}
+function renderChart() {
+  var t = nowTick(), n = WIN, pts = [], k, lo = Infinity, hi = -Infinity;
+  for (k = n - 1; k >= 0; k--) { var v = priceAt(sel, t - k); pts.push(v); lo = Math.min(lo, v); hi = Math.max(hi, v); }
+  var CW = 420, CH = 160, PL = 42, PR = 8, PT = 10, PB = 22;
+  var W = CW - PL - PR, H = CH - PT - PB;
+  var rng = (hi - lo) || 1;
+  var xf = function (j) { return PL + j * W / (n - 1); };
+  var yf = function (v) { return PT + H - (v - lo) / rng * H; };
+  var line = pts.map(function (v, j) { return (j ? 'L' : 'M') + xf(j).toFixed(1) + ' ' + yf(v).toFixed(1); }).join('');
+  var area = line + ' L' + xf(n - 1).toFixed(1) + ' ' + (PT + H) + ' L' + PL + ' ' + (PT + H) + ' Z';
+  var rows = 4;
+  var grids = Array.from({ length: rows + 1 }, function (_, i) {
+    var y = PT + i * H / rows;
+    var val = hi - i * rng / rows;
+    return '<line class="grid" x1="' + PL + '" y1="' + y.toFixed(1) + '" x2="' + (CW - PR) + '" y2="' + y.toFixed(1) + '"/>' +
+      '<text class="axis" x="' + (PL - 4) + '" y="' + (y + 4).toFixed(1) + '" text-anchor="end">' + fmt(val) + '</text>';
+  }).join('');
+  var last = pts[n - 1], lx = xf(n - 1), ly = yf(last);
+  $('chart').innerHTML = '<svg viewBox="0 0 ' + CW + ' ' + CH + '" preserveAspectRatio="xMidYMid meet">' +
+    grids + '<path class="ar" d="' + area + '"/><path class="ln" d="' + line + '"/>' +
+    '<circle class="dot" cx="' + lx.toFixed(1) + '" cy="' + ly.toFixed(1) + '" r="4"/></svg>';
+}
+function updateTrade() {
+  var me = myDoc(), t = nowTick(), p = priceAt(sel, t), s = STOCKS[sel];
+  var q = parseInt($('qty').value, 10) || 0;
+  var c = me ? calcAssets(me, grants[uid], t) : { coins: 0 };
+  var h = me && me.holdings && me.holdings[s.sym];
+  $('t-held').textContent = h && h.qty > 0 ? fmt(h.qty) + '주' : '없음';
+  $('t-avg').textContent = h && h.qty > 0 ? fmt(h.cost / h.qty) + ' 코인' : '–';
+  $('t-total').textContent = q > 0 ? fmt(p * q) + ' 코인' : '–';
+  var margin = q > 0 ? Math.ceil(p * q / LEV) : 0;
+  $('lev-info').textContent = q > 0 ? '배율 매수·공매도 증거금: ' + fmt(margin) + ' 코인 (레버리지 x' + LEV + ')' : '';
+  $('buy').disabled = $('sell').disabled = $('lbuy').disabled = $('short').disabled = busy || !uid;
+}
+function renderHold() {
+  var me = myDoc(), t = nowTick();
+  if (!me) { $('hold').innerHTML = '<p class="empty">로그인하면 보유 종목이 표시됩니다.</p>'; return; }
+  var rows = STOCKS.map(function (s, i) {
+    var h = me.holdings && me.holdings[s.sym]; if (!h || h.qty <= 0) return '';
+    var cur = priceAt(i, t), avg = h.cost / h.qty, pnl = (cur - avg) * h.qty;
+    return '<tr><td><b class="sym">' + s.sym + '</b> ' + esc(s.name) + '</td><td class="num">' + fmt(h.qty) + '</td><td class="num">' + fmt(avg) + '</td><td class="num">' + fmt(cur) + '</td><td class="num ' + cls(pnl) + '">' + arrow(pnl) + ' ' + sgn(pnl) + '</td></tr>';
+  }).filter(Boolean).join('');
+  $('hold').innerHTML = rows ? '<div class="scroll"><table><thead><tr><th>종목</th><th>수량</th><th>평균 매수가</th><th>현재가</th><th>평가 손익</th></tr></thead><tbody>' + rows + '</tbody></table></div>' : '<p class="empty">보유 종목이 없습니다.</p>';
+}
+function renderBoard() {
+  var t = nowTick();
+  var sorted = players.map(function (p) { var c = calcAssets(p, grants[p.id], t); return { nick: p.nick, pl: c.pl, net: c.net }; }).sort(function (a, b) { return b.pl - a.pl; });
+  $('board').innerHTML = sorted.length ? '<div class="scroll"><table><thead><tr><th>순위</th><th>닉네임</th><th>순자산</th><th>손익</th></tr></thead><tbody>' +
+    sorted.map(function (r, i) {
+      return '<tr' + (r.nick === (myDoc() && myDoc().nick) ? ' class="me"' : '') + '><td>' + (i + 1) + '</td><td>' + esc(r.nick) + '</td><td class="num">' + fmt(r.net) + '</td><td class="num ' + cls(r.pl) + '">' + sgn(r.pl) + '</td></tr>';
+    }).join('') + '</tbody></table></div>' : '<p class="empty">참가자가 없습니다.</p>';
+}
+function renderLog() {
+  var me = myDoc();
+  if (!me) { $('log').innerHTML = '<p class="empty">로그인하면 거래 기록이 표시됩니다.</p>'; return; }
+  var SIDE = { buy:'매수', sell:'매도', long:'배율 매수', short:'공매도', liq:'청산', close:'청산', market_buy:'상점 구매' };
+  var logs = (me.log || []).slice().reverse();
+  $('log').innerHTML = logs.length ? '<ul class="log">' + logs.slice(0, 20).map(function (e) {
+    var c = e.side === 'buy' || e.side === 'long' ? 'up' : 'down';
+    return '<li><span class="' + c + '">' + esc(SIDE[e.side] || e.side) + (e.x ? ' x' + e.x : '') + ' ' + esc(e.sym || e.item || '') + ' ' + (e.q ? fmt(e.q) : '') + '</span><span class="num flat">' + new Date(e.t).toLocaleString('ko-KR', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }) + '</span></li>';
+  }).join('') + '</ul>' : '<p class="empty">거래 기록이 없습니다.</p>';
+}
+/* ───── 관리자 페이지 렌더 ───── */
+var mSymInit = false;
+function renderAdmin() {
+  /* 관리자 로그인 박스 / 콘텐츠 전환 */
+  $('adminLoginBox').hidden = isOwner;
+  $('adminContent').hidden = !isOwner;
+  if (!isOwner) return;
+
+  /* 환영 메시지 */
+  var u = auth && auth.currentUser;
+  $('adminWelcome').textContent = '환영합니다, ' + (u && u.displayName || u && u.email || '관리자') + ' 님!';
+
+  /* 통계 요약 */
+  var t = nowTick();
+  var totalIssued = Object.values(grants).reduce(function (a, g) { return a + (g.total || 0); }, 0);
+  $('adm-players').textContent = players.length + '명';
+  $('adm-issued').textContent = fmt(totalIssued) + ' 코인';
+  $('adm-shops').textContent = shops.length + '개';
+  $('adm-buyreqs').textContent = buyReqs.length + '건';
+
+  /* 코인 지급 대상 셀렉트 */
+  var who = $('a-who'), cur = who.value;
+  who.innerHTML = players.map(function (p) { return '<option value="' + esc(p.id) + '">' + esc(p.nick) + '</option>'; }).join('');
+  if (cur) who.value = cur;
+  renderAdminGrantHist();
+
+  /* 플레이어 테이블 */
+  var sorted = players.map(function (p) {
+    var c = calcAssets(p, grants[p.id], t);
+    var g = grants[p.id] || {};
+    return { p: p, c: c, issued: g.total || 0 };
+  }).sort(function (a, b) { return b.c.net - a.c.net; });
+  $('adminPlayerBody').innerHTML = sorted.map(function (row) {
+    return '<tr' + (row.p.id === uid ? ' style="background:var(--soft)"' : '') + '>' +
+      '<td><b>' + esc(row.p.nick) + '</b></td>' +
+      '<td class="num">' + fmt(row.c.coins) + '</td>' +
+      '<td class="num">' + fmt(row.c.hv) + '</td>' +
+      '<td class="num">' + fmt(row.c.net) + '</td>' +
+      '<td class="num ' + cls(row.c.pl) + '">' + sgn(row.c.pl) + '</td>' +
+      '<td class="num">' + fmt(row.issued) + '</td>' +
+      '<td class="num">' + fmt(row.p.trades || 0) + '</td>' +
+    '</tr>';
+  }).join('') || '<tr><td colspan="7" class="empty">플레이어가 없습니다.</td></tr>';
+
+  /* 시세 조작 초기화 */
+  if (!mSymInit) {
+    mSymInit = true;
+    $('m-sym').innerHTML = '<option value="all">전체 종목</option>' +
+      STOCKS.map(function (s) { return '<option value="' + s.sym + '">' + esc(s.name) + '</option>'; }).join('');
+  }
+  var N = { up: '상승', down: '하락', flat: '횡보', surge: '폭등', crash: '폭락' };
+  var on = STOCKS.map(function (s) { var m = modeAt(s.sym, t); return m ? s.name + ' ' + N[m] : ''; }).filter(Boolean);
+  $('m-state').textContent = on.length ? '🔧 조작 중: ' + on.join(', ') : '✅ 모든 종목 자동 시세 중';
+
+  /* 상점 관리 */
+  renderAdminShops();
+}
+function renderAdminGrantHist() {
+  var who = $('a-who');
+  var selP = players.find(function (p) { return p.id === who.value; });
+  var g = selP && grants[selP.id];
+  $('a-hist').innerHTML = g && g.history && g.history.length ?
+    '<div style="margin-top:10px"><div class="foot" style="margin-bottom:6px">' + esc(selP.nick) + '님 지급 내역 (최근 10건)</div>' +
+    '<ul class="log" style="border:1px solid var(--line);border-radius:6px;overflow:hidden">' +
+      g.history.slice().reverse().slice(0, 10).map(function (e) {
+        return '<li><span class="' + cls(e.amt) + '">' + sgn(e.amt) + ' 코인</span>' +
+          '<span class="num flat">' + new Date(e.t).toLocaleString('ko-KR', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }) + '</span></li>';
+      }).join('') +
+    '</ul></div>' : '';
+}
+/* ───── 관리자: 상점 관리 렌더 ───── */
+function renderAdminShops() {
+  if (!isOwner) return;
+  var list = shops; // shops 배열
+  var el = $('adminShopList');
+  if (!list || !list.length) {
+    el.innerHTML = '<p class="empty">등록된 상점이 없습니다.</p>';
+    return;
+  }
+  el.innerHTML = list.map(function (s) {
+    var itemCount = s.items ? s.items.length : 0;
+    var ownerNick = (players.find(function (p) { return p.id === s.ownerUid; }) || {}).nick || s.ownerUid || '알 수 없음';
+    return '<div class="player-row" style="flex-direction:column;align-items:flex-start;gap:8px">' +
+      '<div style="display:flex;width:100%;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:6px">' +
+        '<div>' +
+          '<b style="font-size:14px">' + esc(s.name || '이름 없음') + '</b>' +
+          '<span class="foot"> · 점주: ' + esc(ownerNick) + '</span>' +
+          (s.desc ? '<p style="font-size:12px;color:var(--muted);margin:3px 0 0">' + esc(s.desc) + '</p>' : '') +
+        '</div>' +
+        '<div style="display:flex;gap:6px;flex-wrap:wrap">' +
+          '<button type="button" class="btn sm ghost" data-admin-edit-shop="' + esc(s.id) + '">✏️ 수정</button>' +
+          '<button type="button" class="btn sm ghost" style="color:var(--down)" data-admin-del-shop="' + esc(s.id) + '">🗑️ 삭제</button>' +
+        '</div>' +
+      '</div>' +
+      '<div class="foot">' +
+        '📦 아이템 ' + itemCount + '개' +
+        (s.location ? ' · 📍 ' + esc(s.location) : '') +
+        (s.delivery ? ' · 🚚 배달 가능' : '') +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+/* 관리자 상점 삭제·수정 이벤트 위임 */
+document.getElementById('adminShopList').addEventListener('click', async function (ev) {
+  if (!isOwner) return;
+  var hint = $('adminShopHint');
+  var delBtn = ev.target.closest('[data-admin-del-shop]');
+  var editBtn = ev.target.closest('[data-admin-edit-shop]');
+
+  if (delBtn) {
+    var sid = delBtn.dataset.adminDelShop;
+    var shop = shops.find(function (s) { return s.id === sid; });
+    var sname = shop ? shop.name : sid;
+    if (!confirm('상점 "' + sname + '"을(를) 정말 삭제하시겠습니까?\n아이템 목록도 모두 사라지며 되돌릴 수 없습니다.')) return;
+    hint.textContent = '삭제 중…';
+    try {
+      await db.doc('shops/' + sid).delete();
+      hint.textContent = '✅ 상점 "' + sname + '" 삭제 완료';
+    } catch (e) { hint.textContent = '❌ ' + failMsg(e); }
+    return;
+  }
+
+  if (editBtn) {
+    var sid = editBtn.dataset.adminEditShop;
+    var shop = shops.find(function (s) { return s.id === sid; });
+    if (!shop) return;
+    var newName = prompt('상점 이름:', shop.name || '');
+    if (newName === null) return;
+    var newDesc = prompt('상점 설명:', shop.desc || '');
+    if (newDesc === null) return;
+    var newLoc = prompt('판매 장소:', shop.location || '');
+    if (newLoc === null) return;
+    var delivStr = prompt('배달 가능? (y / n):', shop.delivery ? 'y' : 'n');
+    if (delivStr === null) return;
+    hint.textContent = '저장 중…';
+    try {
+      await db.doc('shops/' + sid).update({
+        name: newName.trim().slice(0, 30) || shop.name,
+        desc: newDesc.trim().slice(0, 100),
+        location: newLoc.trim().slice(0, 80),
+        delivery: delivStr.trim().toLowerCase() === 'y'
+      });
+      hint.textContent = '✅ 상점 수정 완료';
+    } catch (e) { hint.textContent = '❌ ' + failMsg(e); }
+  }
+});
+
+function renderPos() {
+  var me = myDoc(), t = nowTick(), pos = (me && me.pos) || [];
+  if (!pos.length) { $('pos').innerHTML = '<p class="empty">배율 매수나 공매도를 하면 여기에 표시됩니다.</p>'; return; }
+  $('pos').innerHTML = '<div class="scroll"><table style="min-width:600px"><thead><tr><th>종목</th><th>종류</th><th>수량</th><th>진입가</th><th>현재가</th><th>청산 가격</th><th>손익</th><th></th></tr></thead><tbody>' +
+    pos.map(function (o) {
+      var e = evalPos(o, t);
+      return '<tr><td><b class="sym">' + esc(o.sym) + '</b></td><td>' + (o.dir === 'S' ? '공매도' : '배율 매수') + ' x' + o.lev + '</td><td class="num">' + fmt(o.q) + '</td><td class="num">' + fmt(o.entry) + '</td><td class="num">' + fmt(e.cur) + '</td><td class="num flat">' + fmt(e.lp) + '</td><td class="num ' + cls(e.pnl) + '">' + (e.liq ? '청산됨' : arrow(e.pnl) + ' ' + sgn(e.pnl)) + '</td><td><button type="button" class="chip" data-close="' + esc(o.id) + '">' + (e.liq ? '정리' : '청산') + '</button></td></tr>';
+    }).join('') + '</tbody></table></div>';
+}
+function renderStockMe() {
+  var me = myDoc(), t = nowTick();
+  if (!me) { $('s-coins').textContent = $('s-hv').textContent = $('s-net').textContent = $('s-pl').textContent = '–'; return; }
+  var c = calcAssets(me, grants[uid], t);
+  $('s-coins').textContent = fmt(c.coins);
+  $('s-hv').textContent = fmt(c.hv);
+  $('s-net').textContent = fmt(c.net);
+  $('s-pl').className = 'num ' + cls(c.pl); $('s-pl').textContent = sgn(c.pl);
+}
+function failMsg(e) {
+  if (e && e.code === 'permission-denied') return '저장 권한이 없습니다.';
+  if (e && e.code === 'resource-exhausted') return '무료 사용량을 넘었습니다. 내일 다시 시도하세요.';
+  return '저장하지 못했습니다. 잠시 뒤 다시 시도하세요.';
+}
+function say2(el, text) { el.textContent = text; if (text) setTimeout(function () { if (el.textContent === text) el.textContent = ''; }, 4000); }
+
+/* ───── 주식 거래 ───── */
+async function trade(side) {
+  if (busy || !db || !uid) return;
+  var me = myDoc(); if (!me) return;
+  var q = parseInt($('qty').value, 10) || 0; if (q < 1) return;
+  var t = nowTick(), price = priceAt(sel, t), s = STOCKS[sel];
+  var c = calcAssets(me, grants[uid], t);
+  var h = (me.holdings && me.holdings[s.sym]) || { qty: 0, cost: 0 };
+  var cash = me.cash || 0, realized = me.realized || 0, nh;
+  if (side === 'buy') {
+    var cost = price * q;
+    if (cost > c.coins) { say2($('t-hint'), '코인이 부족합니다.'); return; }
+    cash -= cost; nh = { qty: h.qty + q, cost: h.cost + cost };
+  } else {
+    if (q > h.qty) { say2($('t-hint'), '보유 수량보다 많이 팔 수 없습니다.'); return; }
+    var basis = Math.round(h.cost * q / h.qty);
+    cash += price * q; realized += price * q - basis;
+    nh = { qty: h.qty - q, cost: h.qty - q === 0 ? 0 : h.cost - basis };
+  }
+  var log = ((me.log || []).concat([{ t: Date.now(), sym: s.sym, side: side, q: q, price: price }])).slice(-30);
+  busy = true; updateTrade();
+  try {
+    var upd = { cash: cash, realized: realized, trades: (me.trades || 0) + 1, log: log };
+    upd['holdings.' + s.sym] = nh;
+    await db.doc('players/' + uid).update(upd);
+    busy = false;
+    say2($('t-hint'), s.name + ' ' + fmt(q) + '주를 ' + fmt(price) + ' 코인에 ' + (side === 'buy' ? '매수' : '매도') + '했습니다.');
+  } catch (e) { busy = false; say2($('t-hint'), failMsg(e)); }
+  updateTrade();
+}
+async function openPos(dir) {
+  if (busy || !db || !uid) return;
+  var me = myDoc(); if (!me) return;
+  var q = parseInt($('qty').value, 10) || 0; if (q < 1) return;
+  var t = nowTick(), price = priceAt(sel, t), s = STOCKS[sel], c = calcAssets(me, grants[uid], t);
+  var margin = Math.ceil(price * q / LEV), pos = me.pos || [];
+  if (pos.length >= 10) { say2($('t-hint'), '포지션은 최대 10개까지 열 수 있습니다.'); return; }
+  if (margin > c.coins) { say2($('t-hint'), '증거금 ' + fmt(margin) + ' 코인이 부족합니다.'); return; }
+  var o = { id: Date.now().toString(36) + Math.floor(Math.random() * 1e4), sym: s.sym, dir: dir, lev: LEV, q: q, entry: price, margin: margin, tick: t };
+  var log = (me.log || []).concat([{ t: Date.now(), sym: s.sym, side: dir === 'S' ? 'short' : 'long', q: q, price: price, x: LEV }]).slice(-30);
+  busy = true; updateTrade();
+  try {
+    await db.doc('players/' + uid).update({ cash: (me.cash || 0) - margin, pos: pos.concat([o]), log: log, trades: (me.trades || 0) + 1 });
+    busy = false;
+    say2($('t-hint'), s.name + ' ' + fmt(q) + '주 ' + (dir === 'S' ? '공매도' : '배율 매수') + ' x' + LEV + ' 시작');
+  } catch (e) { busy = false; say2($('t-hint'), failMsg(e)); }
+  updateTrade();
+}
+async function closePos(id) {
+  if (busy || !db || !uid) return;
+  var me = myDoc(); if (!me) return;
+  var o = (me.pos || []).find(function (x) { return x.id === id; }); if (!o) return;
+  var e = evalPos(o, nowTick());
+  var log = (me.log || []).concat([{ t: Date.now(), sym: o.sym, side: e.liq ? 'liq' : 'close', q: o.q, price: e.cur, x: o.lev, pnl: e.pnl }]).slice(-30);
+  busy = true;
+  try {
+    await db.doc('players/' + uid).update({ cash: (me.cash || 0) + e.eq, realized: (me.realized || 0) + e.pnl, trades: (me.trades || 0) + 1, log: log, pos: me.pos.filter(function (x) { return x.id !== id; }) });
+  } catch (er) { say2($('t-hint'), failMsg(er)); }
+  busy = false; updateTrade();
+}
+async function checkLiq() {
+  var me = myDoc(); if (!me || !me.pos || !me.pos.length || busy || liqBusy || !db || !uid) return;
+  var t = nowTick(), dead = me.pos.filter(function (o) { return liqOf(o, t); });
+  if (!dead.length) return;
+  liqBusy = true;
+  try {
+    var lost = dead.reduce(function (a, o) { return a + o.margin; }, 0);
+    await db.doc('players/' + uid).update({ pos: me.pos.filter(function (o) { return !liqOf(o, t); }), realized: (me.realized || 0) - lost, log: (me.log || []).concat(dead.map(function (o) { return { t: Date.now(), sym: o.sym, side: 'liq', q: o.q, price: priceAt(SI[o.sym], t), x: o.lev, pnl: -o.margin }; })).slice(-30) });
+  } catch (e) {}
+  liqBusy = false;
+}
+async function setMarket(mode) {
+  var sym = $('m-sym').value, dur = Number($('m-dur').value), t = nowTick() + 1, m = $('m-msg');
+  var ev = { t: t, sym: sym, mode: mode, until: 0 };
+  if (mode === 'surge' || mode === 'crash') ev.until = t + 6;
+  else if (mode !== 'auto' && dur > 0) ev.until = t + dur * 60 / TICK;
+  var list = ctl.filter(function (e) { return !e.until || e.until > t - 12000; }).concat([ev]).slice(-40);
+  try { await db.doc('market/ctl').set({ events: list }); m.textContent = '적용했습니다.'; } catch (e) { m.textContent = failMsg(e); }
+}
+async function grant(sign) {
+  var who = $('a-who').value, amt = Math.floor(Number($('a-amt').value));
+  var m = $('a-msg');
+  if (!who || !(amt > 0)) { m.textContent = '대상과 1 이상의 코인 수를 입력하세요.'; return; }
+  var g = grants[who] || { total: 0, history: [] };
+  var delta = sign * amt;
+  var hist = (g.history || []).concat([{ t: Date.now(), amt: delta }]).slice(-30);
+  $('a-give').disabled = $('a-take').disabled = true;
+  try {
+    await db.doc('grants/' + who).set({ total: (g.total || 0) + delta, history: hist });
+    var p = players.find(function (x) { return x.id === who; });
+    m.textContent = (p ? p.nick : '대상') + '에게 ' + fmt(amt) + ' 코인을 ' + (sign > 0 ? '지급' : '회수') + '했습니다.';
+  } catch (e) { m.textContent = failMsg(e); }
+  $('a-give').disabled = $('a-take').disabled = false;
+}
+
+/* ───── 주식 이벤트 ───── */
+$('list').addEventListener('click', function (ev) {
+  var b = ev.target.closest('.row-stock'); if (!b) return;
+  sel = Number(b.dataset.i); renderList(); renderQuote(); renderChart(); updateTrade();
+});
+document.querySelectorAll('.chip[data-q]').forEach(function (b) {
+  b.addEventListener('click', function () {
+    var v = b.dataset.q, me = myDoc(), t = nowTick(), p = priceAt(sel, t), q = 1;
+    if (v === 'maxbuy') q = me ? Math.max(1, Math.floor(calcAssets(me, grants[uid], t).coins / p)) : 1;
+    else if (v === 'all') { var h = me && me.holdings && me.holdings[STOCKS[sel].sym]; q = h && h.qty > 0 ? h.qty : 1; }
+    else q = Number(v);
+    $('qty').value = q; updateTrade();
+  });
+});
+document.querySelectorAll('.chip[data-a]').forEach(function (b) { b.addEventListener('click', function () { $('a-amt').value = b.dataset.a; }); });
+$('qty').addEventListener('input', function () { updateTrade(); });
+$('buy').addEventListener('click', function () { trade('buy'); });
+$('sell').addEventListener('click', function () { trade('sell'); });
+document.querySelectorAll('.chip[data-l]').forEach(function (b) {
+  b.addEventListener('click', function () {
+    LEV = Number(b.dataset.l);
+    document.querySelectorAll('.chip[data-l]').forEach(function (x) { x.classList.toggle('on', x === b); });
+    updateTrade();
+  });
+});
+$('lbuy').addEventListener('click', function () { openPos('L'); });
+$('short').addEventListener('click', function () { openPos('S'); });
+$('pos').addEventListener('click', function (ev) { var b = ev.target.closest('[data-close]'); if (b) closePos(b.dataset.close); });
+document.addEventListener('click', function (ev) { var b = ev.target.closest('[data-m]'); if (b) setMarket(b.dataset.m); });
+document.addEventListener('pointerdown', function () { pressing = true; });
+['pointerup', 'pointercancel'].forEach(function (n) { document.addEventListener(n, function () { pressing = false; }); });
+$('a-give').addEventListener('click', function () { grant(1); });
+$('a-take').addEventListener('click', function () { grant(-1); });
+$('a-who').addEventListener('change', function () { renderAdminGrantHist(); });
+$('adminRefreshBtn').addEventListener('click', function () { renderAdmin(); });
+
+/* ───── 관리자 주문 내역 렌더 ───── */
+function renderAdminOrders() {
+  if (!isOwner) return;
+  var TMAP = { visit:'직접방문', seller_deliver:'판매자배달', buyer_deliver:'구매자배달', code:'코드결제', any:'무관' };
+  var SMAP = { pending:'대기중', done:'완료', cancelled:'취소' };
+  if (!orders.length) {
+    $('adminOrderBody').innerHTML = '<tr><td colspan="8" class="empty">주문 내역이 없습니다.</td></tr>'; return;
+  }
+  $('adminOrderBody').innerHTML = orders.map(function (o) {
+    return '<tr>' +
+      '<td style="font-size:11px">' + new Date(o.t).toLocaleString('ko-KR', { month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit' }) + '</td>' +
+      '<td>' + esc(o.buyerNick || o.buyerId || '–') + '</td>' +
+      '<td>' + esc(uid2nick(o.sellerId)) + '</td>' +
+      '<td>' + esc(o.itemName || '–') + '</td>' +
+      '<td class="num">' + fmt(o.qty || 0) + '</td>' +
+      '<td class="num">' + fmt(o.total || 0) + ' 코인</td>' +
+      '<td>' + esc(TMAP[o.tradeMethod] || o.tradeMethod || '–') + '</td>' +
+      '<td><span class="badge ' + (o.status==='done'?'green':o.status==='cancelled'?'red':'yellow') + '">' + esc(SMAP[o.status] || o.status || '대기') + '</span></td>' +
+    '</tr>';
+  }).join('');
+}
+
+/* ───── 시계 ───── */
+var lastTick = nowTick();
+function clock() {
+  var left = TICK - ((Date.now() / 1000) % TICK);
+  $('cd').textContent = Math.ceil(left);
+  $('cdbar').style.transform = 'scaleX(' + (left / TICK).toFixed(3) + ')';
+  var t = nowTick();
+  if (t !== lastTick) {
+    lastTick = t; checkLiq();
+    if (!pressing) {
+      renderStockMe(); renderList(); renderQuote(); renderChart(); updateTrade();
+      renderHold(); renderPos(); renderBoard();
+      if (currentPage === 'admin') renderAdmin();
+    }
+  }
+}
+function renderAll() {
+  renderSidebarUser(); renderBank();
+  renderStockMe(); renderList(); renderQuote(); renderChart(); updateTrade();
+  renderHold(); renderPos(); renderBoard(); renderLog();
+  renderAdmin();
+}
+renderAll(); clock(); setInterval(clock, 250);
+
+/* ───── 상점 탭 전환 ───── */
+document.querySelectorAll('.shop-nav-btn[data-stab]').forEach(function (btn) {
+  btn.addEventListener('click', function () {
+    var id = btn.dataset.stab;
+    document.querySelectorAll('.shop-nav-btn[data-stab]').forEach(function (b) { b.classList.toggle('on', b === btn); });
+    $('stab-market').hidden = id !== 'market';
+    $('stab-buyreq').hidden = id !== 'buyreq';
+  });
+});
+
+/* ───── 상점: 태그 필터 ───── */
+var activeTag = null;
+function renderTagFilter() {
+  $('tagFilter').innerHTML = ITEM_TAGS.map(function (tag) {
+    return '<button class="tag' + (activeTag === tag ? ' on' : '') + '" data-tag="' + esc(tag) + '">' + esc(tag) + '</button>';
+  }).join('');
+  $('tagFilter').querySelectorAll('.tag[data-tag]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      activeTag = activeTag === btn.dataset.tag ? null : btn.dataset.tag;
+      renderTagFilter(); renderItemGrid();
+    });
+  });
+}
+
+/* ───── 상점: 상점 목록 렌더 ───── */
+function renderShopGrid() {
+  var html = shops.map(function (sh) {
+    var ownerNick = uid2nick(sh.ownerId);
+    return '<div class="shop-card" data-shopid="' + esc(sh.id) + '">' +
+      '<div class="shop-card-head">' +
+        '<h3>' + esc(sh.name || ownerNick + '의 상점') + '</h3>' +
+        '<p>' + esc(sh.desc || '상점 설명이 없습니다.') + '</p>' +
+      '</div>' +
+      '<div class="shop-card-body">' +
+        '<div class="meta">🧑 ' + esc(ownerNick) + (sh.location ? ' · 📍 ' + esc(sh.location) : '') + '</div>' +
+        (sh.delivery ? '<span class="badge green">🚚 판매자 배달 가능</span>' : '') +
+      '</div>' +
+      '<div class="shop-card-footer">' +
+        '<button class="btn sm" data-view-shop="' + esc(sh.id) + '" style="width:100%">🏪 상점 보기 / 아이템 구매</button>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+  /* 내 상점 없으면 추가 버튼도 표시 */
+  var myShop = shops.find(function (s) { return s.ownerId === uid; });
+  if (!myShop && uid) {
+    html += '<div class="shop-add-card" id="shopAddCard"><div class="plus">＋</div><div>내 상점 만들기</div></div>';
+  }
+  $('shopGrid').innerHTML = html || '<div class="empty" style="grid-column:1/-1">아직 등록된 상점이 없습니다.</div>';
+  $('shopGrid').querySelectorAll('.shop-card').forEach(function (card) {
+    card.addEventListener('click', function (e) {
+      if (e.target.closest('button')) return; /* 버튼 클릭은 별도 처리 */
+      openShopDetail(card.dataset.shopid);
+    });
+  });
+  $('shopGrid').querySelectorAll('[data-view-shop]').forEach(function (btn) {
+    btn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      openShopDetail(btn.dataset.viewShop);
+    });
+  });
+  var addCard = $('shopAddCard');
+  if (addCard) addCard.addEventListener('click', openCreateShop);
+}
+
+/* ───── 상점: 상점 상세 ───── */
+function openShopDetail(shopId) {
+  currentShopId = shopId;
+  var sh = shops.find(function (s) { return s.id === shopId; });
+  if (!sh) return;
+  $('shopListView').hidden = true;
+  $('shopDetailView').hidden = false;
+  $('shopDetailHead').querySelector('span').textContent = sh.name || uid2nick(sh.ownerId) + '의 상점';
+  var isOwnerShop = sh.ownerId === uid;
+  $('shopEditBtn').hidden = !isOwnerShop;
+  $('addItemBtn').hidden = !isOwnerShop;
+  $('shopDetailInfo').innerHTML =
+    '<p style="font-size:15px;font-weight:600;margin-bottom:6px">' + esc(sh.name || uid2nick(sh.ownerId) + '의 상점') + '</p>' +
+    '<p style="color:var(--muted);margin-bottom:8px">' + esc(sh.desc || '상점 설명이 없습니다.') + '</p>' +
+    '<div class="frow" style="gap:8px;font-size:13px">' +
+      '<span>🧑 <b>' + esc(uid2nick(sh.ownerId)) + '</b></span>' +
+      (sh.location ? '<span>📍 ' + esc(sh.location) + '</span>' : '') +
+      (sh.delivery ? '<span class="badge green">🚚 판매자 배달 가능' + (sh.deliveryFee > 0 ? ' (+' + fmt(sh.deliveryFee) + '코인)' : '') + '</span>' : '') +
+    '</div>';
+  activeTag = null;
+  renderTagFilter();
+  loadShopItems(shopId);
+}
+$('shopDetailBack').addEventListener('click', function () {
+  $('shopListView').hidden = false;
+  $('shopDetailView').hidden = true;
+  currentShopId = null;
+});
+$('shopEditBtn').addEventListener('click', function () {
+  var sh = shops.find(function (s) { return s.id === currentShopId; });
+  if (!sh) return;
+  $('shopName').value = sh.name || '';
+  $('shopDesc').value = sh.desc || '';
+  $('shopLocation').value = sh.location || '';
+  $('shopDelivery').checked = !!sh.delivery;
+  $('shopDeliveryFee').value = sh.deliveryFee || 0;
+  $('shopDeliveryFeeBox').hidden = !sh.delivery;
+  $('shopModalTitle').textContent = '상점 편집';
+  $('shopModalMsg').textContent = '';
+  openModal('shopModal');
+});
+$('shopDelivery').addEventListener('change', function () {
+  $('shopDeliveryFeeBox').hidden = !$('shopDelivery').checked;
+});
+
+/* ───── 상점: 아이템 로드 ───── */
+function loadShopItems(shopId) {
+  if (!db) return;
+  $('itemGrid').innerHTML = '<div class="empty" style="grid-column:1/-1">아이템을 불러오는 중...</div>';
+  db.collection('shops/' + shopId + '/items').orderBy('createdAt').onSnapshot(function (snap) {
+    currentShopItems = snap.docs.map(function (d) { var o = Object.assign({}, d.data()); o.id = d.id; return o; });
+    renderItemGrid();
+  }, function () {
+    $('itemGrid').innerHTML = '<div class="empty" style="grid-column:1/-1">아이템을 불러오지 못했습니다.</div>';
+  });
+}
+
+/* ───── 상점: 아이템 그리드 ───── */
+function renderItemGrid() {
+  var sh = shops.find(function (s) { return s.id === currentShopId; });
+  var search = ($('itemSearch').value || '').toLowerCase().trim();
+  var items = currentShopItems.filter(function (it) {
+    if (search && !it.name.toLowerCase().includes(search)) return false;
+    if (activeTag && !(it.tags || []).includes(activeTag)) return false;
+    return true;
+  });
+  if (!items.length) { $('itemGrid').innerHTML = '<div class="empty" style="grid-column:1/-1">해당하는 아이템이 없습니다.</div>'; return; }
+  var isOwnerShop = sh && sh.ownerId === uid;
+  $('itemGrid').innerHTML = items.map(function (it) {
+    var stock = it.stock !== undefined ? it.stock : '∞';
+    var soldOut = it.stock !== undefined && it.stock <= 0;
+    var stockPct = it.stock !== undefined && it.maxStock ? Math.min(100, it.stock / it.maxStock * 100) : null;
+    var delivMethods = [];
+    if (it.tradeVisit !== false) delivMethods.push('📦 직접방문');
+    if (it.tradeSend) delivMethods.push('🚚 판매자배달' + (it.tradeSendFee > 0 ? '(+' + fmt(it.tradeSendFee) + ')' : ''));
+    delivMethods.push('📮 구매자배달(+100/세트)');
+    return '<div class="item-card">' +
+      '<div class="item-card-top">' +
+        '<h4>' + esc(it.name) + (soldOut ? ' <span class="badge red">품절</span>' : '') + '</h4>' +
+        '<div class="item-price">' + fmt(it.price) + '<small style="font-size:12px;font-weight:400"> 코인</small></div>' +
+      '</div>' +
+      (it.desc ? '<p style="font-size:12px;color:var(--muted);margin-bottom:6px">' + esc(it.desc) + '</p>' : '') +
+      '<div class="item-qty">최소 ' + (it.minQty || 1) + '개 · 재고: ' + (typeof stock === 'number' ? fmt(stock) : stock) + '개' +
+        (it.code ? ' · <span style="font-family:var(--font-mono);color:var(--accent-text)">코드: ' + esc(it.code) + '</span>' : '') +
+      '</div>' +
+      '<div class="item-tags">' + (it.tags || []).map(function (t) { return '<span class="item-tag">' + esc(t) + '</span>'; }).join('') + '</div>' +
+      (stockPct !== null ? '<div class="stock-bar"><div class="stock-bar-fill" style="width:' + stockPct.toFixed(0) + '%"></div></div>' : '') +
+      '<div class="delivery-info">' + delivMethods.map(function (d) { return '<span class="delivery-badge">' + d + '</span>'; }).join('') + '</div>' +
+      '<div style="display:flex;gap:8px;margin-top:10px">' +
+        (!soldOut ? '<button class="btn sm buy" style="flex:1" data-buy-item="' + esc(it.id) + '">구매하기</button>' : '<button class="btn sm" disabled style="flex:1">품절</button>') +
+        (isOwnerShop ? '<button class="btn sm ghost" data-edit-item="' + esc(it.id) + '">편집</button>' : '') +
+        (isOwnerShop ? '<button class="btn sm ghost" data-stock-item="' + esc(it.id) + '">재고</button>' : '') +
+      '</div>' +
+    '</div>';
+  }).join('');
+
+  /* 버튼 이벤트 */
+  $('itemGrid').querySelectorAll('[data-buy-item]').forEach(function (btn) {
+    btn.addEventListener('click', function () { openBuyModal(btn.dataset.buyItem); });
+  });
+  $('itemGrid').querySelectorAll('[data-edit-item]').forEach(function (btn) {
+    btn.addEventListener('click', function () { openEditItemModal(btn.dataset.editItem); });
+  });
+  $('itemGrid').querySelectorAll('[data-stock-item]').forEach(function (btn) {
+    btn.addEventListener('click', function () { openStockModal(btn.dataset.stockItem); });
+  });
+}
+$('itemSearch').addEventListener('input', renderItemGrid);
+
+/* ───── 상점: 만들기/편집 모달 ───── */
+$('createShopBtn').addEventListener('click', openCreateShop);
+function openCreateShop() {
+  if (!uid) { openAuth(); return; }
+  var myShop = shops.find(function (s) { return s.ownerId === uid; });
+  if (myShop) { openShopDetail(myShop.id); return; }
+  $('shopName').value = ''; $('shopDesc').value = ''; $('shopLocation').value = '';
+  $('shopDelivery').checked = false; $('shopDeliveryFeeBox').hidden = true; $('shopDeliveryFee').value = 0;
+  $('shopModalTitle').textContent = '내 상점 만들기';
+  $('shopModalMsg').textContent = '';
+  openModal('shopModal');
+}
+$('shopSaveBtn').addEventListener('click', async function () {
+  if (!db || !uid) return;
+  var name = $('shopName').value.trim();
+  if (!name) { $('shopModalMsg').textContent = '상점 이름을 입력하세요.'; return; }
+  var data = {
+    name: name, desc: $('shopDesc').value.trim(), location: $('shopLocation').value.trim(),
+    delivery: $('shopDelivery').checked, deliveryFee: Number($('shopDeliveryFee').value) || 0,
+    ownerId: uid, updatedAt: Date.now()
+  };
+  $('shopSaveBtn').disabled = true; $('shopModalMsg').textContent = '';
+  try {
+    var myShop = shops.find(function (s) { return s.ownerId === uid; });
+    if (myShop) {
+      await db.doc('shops/' + myShop.id).update(data);
+    } else {
+      data.createdAt = Date.now();
+      var ref = await db.collection('shops').add(data);
+      currentShopId = ref.id;
+    }
+    closeModal('shopModal');
+  } catch (e) { $('shopModalMsg').textContent = failMsg(e); }
+  $('shopSaveBtn').disabled = false;
+});
+
+/* ───── 상점: 아이템 추가/편집 모달 ───── */
+function buildTagSelect(selectedTags) {
+  $('itemTagSelect').innerHTML = ITEM_TAGS.map(function (tag) {
+    var on = selectedTags && selectedTags.includes(tag);
+    return '<button type="button" class="tag' + (on ? ' on' : '') + '" data-stag="' + esc(tag) + '">' + esc(tag) + '</button>';
+  }).join('');
+  $('itemTagSelect').querySelectorAll('[data-stag]').forEach(function (btn) {
+    btn.addEventListener('click', function () { btn.classList.toggle('on'); });
+  });
+}
+function getSelectedTags() {
+  return Array.from($('itemTagSelect').querySelectorAll('.tag.on')).map(function (b) { return b.dataset.stag; });
+}
+$('addItemBtn').addEventListener('click', function () {
+  editingItem = null;
+  $('itemModalTitle').textContent = '아이템 추가';
+  $('itemName').value = ''; $('itemCode').value = ''; $('itemDesc').value = '';
+  $('itemPrice').value = ''; $('itemStock').value = ''; $('itemMinQty').value = 1;
+  $('tradeVisit').checked = true; $('tradeSend').checked = false; $('tradeSendFeeBox').hidden = true; $('tradeSendFee').value = 0;
+  buildTagSelect([]);
+  $('itemModalMsg').textContent = '';
+  openModal('itemModal');
+});
+function openEditItemModal(itemId) {
+  var it = currentShopItems.find(function (x) { return x.id === itemId; });
+  if (!it) return;
+  editingItem = it;
+  $('itemModalTitle').textContent = '아이템 편집';
+  $('itemName').value = it.name || '';
+  $('itemCode').value = it.code || '';
+  $('itemDesc').value = it.desc || '';
+  $('itemPrice').value = it.price || '';
+  $('itemStock').value = it.stock !== undefined ? it.stock : '';
+  $('itemMinQty').value = it.minQty || 1;
+  $('tradeVisit').checked = it.tradeVisit !== false;
+  $('tradeSend').checked = !!it.tradeSend;
+  $('tradeSendFee').value = it.tradeSendFee || 0;
+  $('tradeSendFeeBox').hidden = !it.tradeSend;
+  buildTagSelect(it.tags || []);
+  $('itemModalMsg').textContent = '';
+  openModal('itemModal');
+}
+$('tradeSend').addEventListener('change', function () { $('tradeSendFeeBox').hidden = !$('tradeSend').checked; });
+$('itemCode').addEventListener('input', function () { this.value = this.value.toUpperCase().replace(/[^A-Z0-9\-]/g, ''); });
+$('itemSaveBtn').addEventListener('click', async function () {
+  if (!db || !uid || !currentShopId) return;
+  var name = $('itemName').value.trim(), code = $('itemCode').value.trim().toUpperCase();
+  var price = Number($('itemPrice').value);
+  if (!name) { $('itemModalMsg').textContent = '아이템 이름을 입력하세요.'; return; }
+  if (!(price > 0)) { $('itemModalMsg').textContent = '가격을 1 이상 입력하세요.'; return; }
+  if (code && (code.length < 2 || code.length > 12)) { $('itemModalMsg').textContent = '코드는 2~12자 영숫자로 입력하세요.'; return; }
+  var stockVal = $('itemStock').value.trim();
+  var data = {
+    name: name, code: code, desc: $('itemDesc').value.trim(),
+    price: price,
+    stock: stockVal === '' ? null : Number(stockVal),
+    maxStock: stockVal === '' ? null : Number(stockVal),
+    minQty: Number($('itemMinQty').value) || 1,
+    tags: getSelectedTags(),
+    tradeVisit: $('tradeVisit').checked,
+    tradeSend: $('tradeSend').checked,
+    tradeSendFee: Number($('tradeSendFee').value) || 0,
+    shopId: currentShopId, updatedAt: Date.now()
+  };
+  $('itemSaveBtn').disabled = true; $('itemModalMsg').textContent = '';
+  try {
+    var col = db.collection('shops/' + currentShopId + '/items');
+    if (editingItem) {
+      await col.doc(editingItem.id).update(data);
+    } else {
+      data.createdAt = Date.now();
+      await col.add(data);
+    }
+    closeModal('itemModal'); editingItem = null;
+  } catch (e) { $('itemModalMsg').textContent = failMsg(e); }
+  $('itemSaveBtn').disabled = false;
+});
+
+/* ───── 상점: 재고 관리 모달 ───── */
+function openStockModal(itemId) {
+  var it = currentShopItems.find(function (x) { return x.id === itemId; });
+  if (!it) return;
+  stockEditItemId = itemId;
+  $('stockItemName').textContent = it.name;
+  $('stockQty').value = it.stock !== undefined && it.stock !== null ? it.stock : 0;
+  $('stockMsg').textContent = '';
+  openModal('stockModal');
+}
+$('stockMinus').addEventListener('click', function () { var v = Number($('stockQty').value); $('stockQty').value = Math.max(0, v - 1); });
+$('stockPlus').addEventListener('click', function () { var v = Number($('stockQty').value); $('stockQty').value = v + 1; });
+$('stockSaveBtn').addEventListener('click', async function () {
+  if (!db || !uid || !currentShopId || !stockEditItemId) return;
+  var qty = Number($('stockQty').value);
+  $('stockSaveBtn').disabled = true; $('stockMsg').textContent = '';
+  try {
+    await db.doc('shops/' + currentShopId + '/items/' + stockEditItemId).update({ stock: qty, updatedAt: Date.now() });
+    closeModal('stockModal');
+  } catch (e) { $('stockMsg').textContent = failMsg(e); }
+  $('stockSaveBtn').disabled = false;
+});
+
+/* ───── 상점: 구매 모달 ───── */
+function openBuyModal(itemId) {
+  if (!uid) { openAuth(); return; }
+  var it = currentShopItems.find(function (x) { return x.id === itemId; });
+  var sh = shops.find(function (s) { return s.id === currentShopId; });
+  if (!it || !sh) return;
+  buyingItem = it; buyingShop = sh;
+  $('buyModalTitle').textContent = it.name + ' 구매';
+  $('buyQty').value = it.minQty || 1;
+  $('buyDeliveryCoord').value = '';
+  $('buyModalMsg').textContent = '';
+  /* 아이템 정보 */
+  $('buyModalInfo').innerHTML =
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">' +
+      '<div><b>' + esc(it.name) + '</b>' + (it.desc ? '<p style="font-size:12px;color:var(--muted);margin:4px 0 0">' + esc(it.desc) + '</p>' : '') + '</div>' +
+      '<div class="item-price">' + fmt(it.price) + ' 코인</div>' +
+    '</div>' +
+    '<div class="foot">판매 장소: ' + esc(sh.location || '(미등록)') + ' · 판매자: ' + esc(uid2nick(sh.ownerId)) + '</div>';
+  /* 거래 방식 */
+  var tradeOpts = '';
+  if (it.tradeVisit !== false) tradeOpts += '<label style="display:flex;align-items:center;gap:8px;font-size:14px"><input type="radio" name="buyTrade" value="visit" checked> 판매 장소 직접 방문</label>';
+  if (it.tradeSend) tradeOpts += '<label style="display:flex;align-items:center;gap:8px;font-size:14px"><input type="radio" name="buyTrade" value="seller_deliver"> 판매자가 나에게 직접 배달' + (it.tradeSendFee > 0 ? ' (+' + fmt(it.tradeSendFee) + ' 코인)' : ' (추가 요금 없음)') + '</label>';
+  tradeOpts += '<label style="display:flex;align-items:center;gap:8px;font-size:14px"><input type="radio" name="buyTrade" value="buyer_deliver"> 구매자 측 배달 (+100 코인/세트)</label>';
+  $('buyTradeOpts').innerHTML = tradeOpts;
+  $('buyTradeOpts').querySelectorAll('input[name="buyTrade"]').forEach(function (r) {
+    r.addEventListener('change', updateBuyTotal);
+  });
+  updateBuyTotal();
+  openModal('buyModal');
+}
+function getBuyTradeMethod() {
+  var r = $('buyTradeOpts').querySelector('input[name="buyTrade"]:checked');
+  return r ? r.value : 'visit';
+}
+function updateBuyTotal() {
+  if (!buyingItem) return;
+  var qty = Math.max(Number($('buyQty').value) || 1, buyingItem.minQty || 1);
+  var method = getBuyTradeMethod();
+  var base = buyingItem.price * qty;
+  var extra = 0, extraDesc = '';
+  if (method === 'seller_deliver' && buyingItem.tradeSendFee > 0) {
+    extra = buyingItem.tradeSendFee; extraDesc = '판매자 배달: +' + fmt(extra) + ' 코인';
+  }
+  if (method === 'buyer_deliver') {
+    extra = 100 * qty; extraDesc = '구매자 배달: +100 × ' + qty + ' = +' + fmt(extra) + ' 코인';
+  }
+  $('buyDeliveryCoordBox').hidden = method === 'visit';
+  $('buyTotal').textContent = fmt(base + extra) + ' 코인';
+  $('buyPriceBreak').textContent = fmt(buyingItem.price) + ' × ' + qty + (extraDesc ? ' + ' + extraDesc : '');
+}
+$('buyQty').addEventListener('input', updateBuyTotal);
+$('buyQtyMinus').addEventListener('click', function () {
+  var min = buyingItem ? (buyingItem.minQty || 1) : 1;
+  $('buyQty').value = Math.max(min, (Number($('buyQty').value) || 1) - 1); updateBuyTotal();
+});
+$('buyQtyPlus').addEventListener('click', function () { $('buyQty').value = (Number($('buyQty').value) || 1) + 1; updateBuyTotal(); });
+$('buyConfirmBtn').addEventListener('click', async function () {
+  if (!db || !uid || !buyingItem || !buyingShop) return;
+  var me = myDoc(); if (!me) return;
+  var qty = Number($('buyQty').value) || 1;
+  var minQty = buyingItem.minQty || 1;
+  if (qty < minQty) { $('buyModalMsg').textContent = '최소 구매 수량은 ' + minQty + '개입니다.'; return; }
+  if (buyingItem.stock !== null && buyingItem.stock !== undefined && qty > buyingItem.stock) { $('buyModalMsg').textContent = '재고가 부족합니다. (남은 재고: ' + buyingItem.stock + ')'; return; }
+  var method = getBuyTradeMethod();
+  var base = buyingItem.price * qty;
+  var extra = 0;
+  if (method === 'seller_deliver' && buyingItem.tradeSendFee > 0) extra = buyingItem.tradeSendFee;
+  if (method === 'buyer_deliver') extra = 100 * qty;
+  var total = base + extra;
+  var t = nowTick(), c = calcAssets(me, grants[uid], t);
+  if (total > c.coins) { $('buyModalMsg').textContent = '코인이 부족합니다. (필요: ' + fmt(total) + ', 보유: ' + fmt(c.coins) + ')'; return; }
+  var delivCoord = method !== 'visit' ? $('buyDeliveryCoord').value.trim() : '';
+  $('buyConfirmBtn').disabled = true; $('buyModalMsg').textContent = '';
+  try {
+    /* 구매자 코인 차감 */
+    var newLog = (me.log || []).concat([{ t: Date.now(), side: 'market_buy', item: buyingItem.name, q: qty, price: buyingItem.price, pnl: -total }]).slice(-30);
+    await db.doc('players/' + uid).update({ cash: (me.cash || 0) - total, log: newLog, trades: (me.trades || 0) + 1 });
+    /* 판매자 코인 지급 */
+    var seller = players.find(function (p) { return p.id === buyingShop.ownerId; });
+    if (seller && seller.id !== uid) {
+      var sellerLog = (seller.log || []).concat([{ t: Date.now(), side: 'market_sell', item: buyingItem.name, q: qty, price: buyingItem.price, pnl: base }]).slice(-30);
+      await db.doc('players/' + buyingShop.ownerId).update({ cash: (seller.cash || 0) + base, log: sellerLog });
+    }
+    /* 재고 차감 */
+    if (buyingItem.stock !== null && buyingItem.stock !== undefined) {
+      await db.doc('shops/' + buyingShop.id + '/items/' + buyingItem.id).update({ stock: Math.max(0, buyingItem.stock - qty) });
+    }
+    /* 주문 기록 저장 */
+    await db.collection('orders').add({
+      buyerId: uid, buyerNick: me.nick, sellerId: buyingShop.ownerId,
+      shopId: buyingShop.id, itemId: buyingItem.id, itemName: buyingItem.name,
+      qty: qty, price: buyingItem.price, extra: extra, total: total,
+      tradeMethod: method, delivCoord: delivCoord, t: Date.now(), status: 'pending'
+    });
+    closeModal('buyModal');
+    notice(buyingItem.name + ' ' + qty + '개 구매 완료! (' + fmt(total) + ' 코인)');
+  } catch (e) { $('buyModalMsg').textContent = failMsg(e); }
+  $('buyConfirmBtn').disabled = false;
+});
+
+/* ───── 매수글 ───── */
+$('createBuyReqBtn').addEventListener('click', function () {
+  if (!uid) { openAuth(); return; }
+  $('brItemName').value = ''; $('brQty').value = ''; $('brPrice').value = '';
+  $('brLocation').value = ''; $('brNote').value = ''; $('brMsg').textContent = '';
+  openModal('buyReqModal');
+});
+$('brSaveBtn').addEventListener('click', async function () {
+  if (!db || !uid) return;
+  var name = $('brItemName').value.trim(), qty = Number($('brQty').value), price = Number($('brPrice').value);
+  if (!name) { $('brMsg').textContent = '아이템 이름을 입력하세요.'; return; }
+  if (!(qty > 0)) { $('brMsg').textContent = '수량을 1 이상 입력하세요.'; return; }
+  var me = myDoc();
+  var data = {
+    buyerId: uid, buyerNick: (me && me.nick) || uid,
+    itemName: name, qty: qty, price: price,
+    tradeType: $('brTradeType').value,
+    location: $('brLocation').value.trim(),
+    note: $('brNote').value.trim(),
+    t: Date.now(), status: 'open'
+  };
+  $('brSaveBtn').disabled = true; $('brMsg').textContent = '';
+  try {
+    await db.collection('buyRequests').add(data);
+    closeModal('buyReqModal'); notice('매수글이 등록되었습니다.');
+  } catch (e) { $('brMsg').textContent = failMsg(e); }
+  $('brSaveBtn').disabled = false;
+});
+function renderBuyReqs() {
+  var TRADE = { visit:'직접방문', seller_deliver:'판매자배달', buyer_deliver:'구매자배달', any:'무관' };
+  if (!buyReqs.length) { $('buyReqList').innerHTML = '<p class="empty">등록된 매수글이 없습니다.</p>'; return; }
+  $('buyReqList').innerHTML = buyReqs.slice().sort(function(a,b){return b.t-a.t;}).map(function (r) {
+    var isMine = r.buyerId === uid;
+    return '<div class="buy-req-item">' +
+      '<div class="info">' +
+        '<h4>' + esc(r.itemName) + (r.note ? ' <span class="badge" style="font-weight:400">'+esc(r.note)+'</span>' : '') + '</h4>' +
+        '<p>' +
+          '🧑 ' + esc(r.buyerNick) + ' · ' +
+          '수량: <b>' + fmt(r.qty) + '개</b> · ' +
+          (TRADE[r.tradeType] || r.tradeType) +
+          (r.location ? ' · 📍 ' + esc(r.location) : '') + ' · ' +
+          new Date(r.t).toLocaleDateString('ko-KR') +
+        '</p>' +
+      '</div>' +
+      '<div class="price-col">' +
+        '<div class="p">' + (r.price > 0 ? fmt(r.price) + ' 코인' : '가격 협의') + '</div>' +
+        '<small>' + (r.price > 0 ? '개당' : '') + '</small>' +
+        (!isMine ? '<button class="btn sm buy" style="margin-top:6px" data-brfill="' + esc(r.id) + '">판매하기</button>' : '') +
+        (isMine ? '<button class="btn sm danger" style="margin-top:6px" data-brdel="' + esc(r.id) + '">삭제</button>' : '') +
+      '</div>' +
+    '</div>';
+  }).join('');
+  $('buyReqList').querySelectorAll('[data-brdel]').forEach(function (btn) {
+    btn.addEventListener('click', async function () {
+      if (!confirm('매수글을 삭제하시겠습니까?')) return;
+      try { await db.doc('buyRequests/' + btn.dataset.brdel).delete(); } catch(e) { notice(failMsg(e), true); }
+    });
+  });
+  $('buyReqList').querySelectorAll('[data-brfill]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var r = buyReqs.find(function(x){return x.id===btn.dataset.brfill;});
+      if (!r) return;
+      /* 판매하기: 판매자가 구매자에게 아이템 판매, 가격은 매수글에 적힌 가격으로 */
+      openFillBuyReq(r);
+    });
+  });
+}
+/* 매수글 채우기 (판매 확정) */
+async function openFillBuyReq(req) {
+  if (!uid || !db) { openAuth(); return; }
+  var me = myDoc();
+  var buyer = players.find(function(p){return p.id===req.buyerId;});
+  if (!buyer) { notice('구매자 정보를 찾을 수 없습니다.', true); return; }
+  var total = req.price * req.qty;
+  if (!confirm(req.buyerNick + '의 매수글에 판매 확정하시겠습니까?\n' + req.itemName + ' ' + req.qty + '개 → ' + fmt(total) + ' 코인')) return;
+  if (total > (buyer.cash || 0) + ((grants[buyer.id] && grants[buyer.id].total) || 0)) {
+    notice('구매자 코인이 부족합니다.', true); return;
+  }
+  try {
+    /* 구매자 차감 */
+    var buyLog = (buyer.log || []).concat([{t:Date.now(),side:'market_buy',item:req.itemName,q:req.qty,price:req.price,pnl:-total}]).slice(-30);
+    await db.doc('players/'+buyer.id).update({cash:(buyer.cash||0)-total, log:buyLog});
+    /* 판매자 지급 */
+    var selLog = (me.log||[]).concat([{t:Date.now(),side:'market_sell',item:req.itemName,q:req.qty,price:req.price,pnl:total}]).slice(-30);
+    await db.doc('players/'+uid).update({cash:(me.cash||0)+total, log:selLog});
+    /* 매수글 완료 처리 */
+    await db.doc('buyRequests/'+req.id).update({status:'filled', filledBy:uid, filledAt:Date.now()});
+    notice('판매 완료! ' + fmt(total) + ' 코인이 지급되었습니다.');
+  } catch(e) { notice(failMsg(e), true); }
+}
+
+/* ───── 코드 결제 ───── */
+$('codeSearchBtn').addEventListener('click', searchByCode);
+$('codeInput').addEventListener('keydown', function (e) { if (e.key === 'Enter') searchByCode(); });
+var codeItem = null, codeShop = null;
+async function searchByCode() {
+  if (!db) { $('codeHint').textContent = 'Firebase에 연결되지 않았습니다.'; return; }
+  var code = $('codeInput').value.trim().toUpperCase();
+  if (!code) { $('codeHint').textContent = '코드를 입력하세요.'; return; }
+  $('codeResult').hidden = true; $('codeHint').textContent = '검색 중...';
+  codeItem = null; codeShop = null;
+  try {
+    /* 모든 상점의 아이템에서 코드 검색 */
+    var found = null, foundShop = null;
+    for (var i = 0; i < shops.length; i++) {
+      var sh = shops[i];
+      var snap = await db.collection('shops/' + sh.id + '/items').where('code', '==', code).limit(1).get();
+      if (!snap.empty) { found = Object.assign({}, snap.docs[0].data()); found.id = snap.docs[0].id; foundShop = sh; break; }
+    }
+    if (!found) { $('codeHint').textContent = '코드 "' + code + '"에 해당하는 상품을 찾을 수 없습니다.'; return; }
+    codeItem = found; codeShop = foundShop;
+    $('codeHint').textContent = '';
+    var soldOut = found.stock !== null && found.stock !== undefined && found.stock <= 0;
+    $('codeResult').hidden = false;
+    $('codeResult').innerHTML =
+      '<h3>' + esc(found.name) + (soldOut ? ' <span class="badge red">품절</span>' : '') + '</h3>' +
+      (found.desc ? '<p style="color:var(--muted);font-size:13px">' + esc(found.desc) + '</p>' : '') +
+      '<div style="font-size:13px;color:var(--muted)">판매자: <b>' + esc(uid2nick(foundShop.ownerId)) + '</b> · 판매 장소: ' + esc(foundShop.location || '미등록') + '</div>' +
+      '<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:4px">' +
+        '<div class="code-price">' + fmt(found.price) + ' 코인</div>' +
+        '<div style="font-size:12px;color:var(--muted)">재고: ' + (found.stock !== null && found.stock !== undefined ? fmt(found.stock) : '∞') + '개</div>' +
+      '</div>' +
+      '<div style="display:flex;align-items:center;gap:12px;margin-top:12px">' +
+        '<div class="qty-stepper">' +
+          '<button id="codeQtyMinus">−</button>' +
+          '<input type="number" id="codeQty" min="'+(found.minQty||1)+'" step="1" value="'+(found.minQty||1)+'">' +
+          '<button id="codeQtyPlus">+</button>' +
+        '</div>' +
+        '<div>' +
+          '<div style="font-size:12px;color:var(--muted)">합계</div>' +
+          '<div class="num" id="codeTotalPrice" style="font-size:18px;font-weight:700;color:var(--accent-text)">' + fmt(found.price * (found.minQty||1)) + ' 코인</div>' +
+        '</div>' +
+      '</div>' +
+      (soldOut ? '<button class="btn" disabled style="width:100%;margin-top:12px">품절</button>' : '<button class="btn buy" id="codeBuyBtn" style="width:100%;margin-top:12px">바로 구매</button>');
+    $('codeQtyMinus').addEventListener('click', function () {
+      var min = codeItem ? (codeItem.minQty||1) : 1;
+      $('codeQty').value = Math.max(min, Number($('codeQty').value)-1); updateCodeTotal();
+    });
+    $('codeQtyPlus').addEventListener('click', function () { $('codeQty').value = Number($('codeQty').value)+1; updateCodeTotal(); });
+    $('codeQty').addEventListener('input', updateCodeTotal);
+    var buyBtn = $('codeBuyBtn');
+    if (buyBtn) buyBtn.addEventListener('click', doCodeBuy);
+  } catch (e) { $('codeHint').textContent = failMsg(e); }
+}
+function updateCodeTotal() {
+  if (!codeItem) return;
+  var qty = Number($('codeQty').value) || 1;
+  $('codeTotalPrice').textContent = fmt(codeItem.price * qty) + ' 코인';
+}
+async function doCodeBuy() {
+  if (!uid) { openAuth(); return; }
+  if (!db || !codeItem || !codeShop) return;
+  var me = myDoc(); if (!me) return;
+  var qty = Number($('codeQty').value) || 1;
+  var minQty = codeItem.minQty || 1;
+  if (qty < minQty) { $('codeHint').textContent = '최소 구매 수량: ' + minQty + '개'; return; }
+  if (codeItem.stock !== null && codeItem.stock !== undefined && qty > codeItem.stock) {
+    $('codeHint').textContent = '재고가 부족합니다. (남은 재고: ' + codeItem.stock + ')'; return;
+  }
+  var total = codeItem.price * qty;
+  var t = nowTick(), c = calcAssets(me, grants[uid], t);
+  if (total > c.coins) { $('codeHint').textContent = '코인이 부족합니다. (필요: ' + fmt(total) + ', 보유: ' + fmt(c.coins) + ')'; return; }
+  if (!confirm(codeItem.name + ' ' + qty + '개를 ' + fmt(total) + ' 코인에 구매하시겠습니까?\n※ 받는 방법은 판매 장소에서 직접 확인하세요.')) return;
+  $('codeBuyBtn').disabled = true; $('codeHint').textContent = '';
+  try {
+    var newLog = (me.log||[]).concat([{t:Date.now(),side:'market_buy',item:codeItem.name,q:qty,price:codeItem.price,pnl:-total}]).slice(-30);
+    await db.doc('players/'+uid).update({cash:(me.cash||0)-total, log:newLog, trades:(me.trades||0)+1});
+    var seller = players.find(function(p){return p.id===codeShop.ownerId;});
+    if (seller && seller.id !== uid) {
+      var selLog = (seller.log||[]).concat([{t:Date.now(),side:'market_sell',item:codeItem.name,q:qty,price:codeItem.price,pnl:total}]).slice(-30);
+      await db.doc('players/'+codeShop.ownerId).update({cash:(seller.cash||0)+total, log:selLog});
+    }
+    if (codeItem.stock !== null && codeItem.stock !== undefined) {
+      await db.doc('shops/'+codeShop.id+'/items/'+codeItem.id).update({stock:Math.max(0,codeItem.stock-qty)});
+    }
+    await db.collection('orders').add({
+      buyerId:uid,buyerNick:me.nick,sellerId:codeShop.ownerId,
+      shopId:codeShop.id,itemId:codeItem.id,itemName:codeItem.name,
+      qty:qty,price:codeItem.price,extra:0,total:total,
+      tradeMethod:'code',t:Date.now(),status:'pending'
+    });
+    notice(codeItem.name + ' ' + qty + '개 구매 완료! (' + fmt(total) + ' 코인) 판매 장소에서 아이템을 받으세요.');
+    $('codeResult').hidden = true; $('codeInput').value = '';
+  } catch(e) { $('codeHint').textContent = failMsg(e); }
+  if ($('codeBuyBtn')) $('codeBuyBtn').disabled = false;
+}
+
+/* ───── Firebase 연결 ───── */
+var cfg = (window.APP_CONFIG && window.APP_CONFIG.firebase) || {};
+if (!window.firebase || !cfg.apiKey || /여기에/.test(cfg.apiKey)) {
+  notice('Firebase 설정이 아직 입력되지 않았습니다. 시세만 볼 수 있습니다.', true);
+  renderAll(); return;
+}
+firebase.initializeApp(cfg);
+auth = firebase.auth();
+db = firebase.firestore();
+
+var timer = setTimeout(function () { notice('저장소 응답이 늦습니다. 페이지를 새로 열어 주세요.', true); }, 10000);
+var got = { p: false, g: false }, started = false;
+function ready() { if (got.p && got.g) { loaded = true; clearTimeout(timer); notice(''); } }
+
+function startListeners() {
+  if (started) return; started = true;
+  /* 플레이어 */
+  db.collection('players').onSnapshot(function (snap) {
+    players = snap.docs.map(function (d) { var o = Object.assign({}, d.data()); o.id = d.id; return o; });
+    got.p = true; ready(); renderAll(); renderBuyReqs();
+  }, function () { notice('참가자 정보를 불러오지 못했습니다.', true); });
+  /* 시장 컨트롤 */
+  db.doc('market/ctl').onSnapshot(function (d) { ctl = d.exists ? (d.data().events || []) : []; chains = {}; }, function () {});
+  /* 지급 내역 */
+  db.collection('grants').onSnapshot(function (snap) {
+    grants = {}; snap.docs.forEach(function (d) { grants[d.id] = d.data(); });
+    got.g = true; ready(); renderAll();
+  }, function () { notice('코인 지급 내역을 불러오지 못했습니다.', true); });
+  /* 상점 목록 */
+  db.collection('shops').onSnapshot(function (snap) {
+    shops = snap.docs.map(function (d) { var o = Object.assign({}, d.data()); o.id = d.id; return o; });
+    renderShopGrid();
+    if (currentShopId) { var sh = shops.find(function(s){return s.id===currentShopId;}); if (sh) openShopDetail(currentShopId); }
+  }, function () {});
+  /* 매수글 — where+orderBy 복합 인덱스 불필요하게 JS에서 정렬 */
+  db.collection('buyRequests').where('status','==','open').onSnapshot(function (snap) {
+    buyReqs = snap.docs.map(function (d) { var o = Object.assign({}, d.data()); o.id = d.id; return o; });
+    buyReqs.sort(function(a,b){return (b.t||0)-(a.t||0);});
+    renderBuyReqs();
+    if (isOwner) renderAdmin();
+  }, function () {});
+  /* 주문 내역 (관리자 전용) */
+  function startOrderListener() {
+    if (!isOwner) return;
+    db.collection('orders').limit(50).onSnapshot(function (snap) {
+      orders = snap.docs.map(function (d) { var o = Object.assign({}, d.data()); o.id = d.id; return o; });
+      orders.sort(function(a,b){return (b.t||0)-(a.t||0);});
+      renderAdminOrders();
+    }, function () {});
+  }
+  startOrderListener();
+}
+
+auth.onAuthStateChanged(function (u) {
+  if (!u) {
+    /* 완전 로그아웃 → 익명 로그인 */
+    uid = null; isOwner = false;
+    auth.signInAnonymously().catch(function () { notice('로그인에 실패했습니다. 새로고침해 보세요.', true); });
+    renderSidebarUser(); renderAdmin();
+    return;
+  }
+  uid = u.uid;
+  /* 지정된 UID와 일치하는 경우에만 관리자 */
+  var ADMIN_UID = 'LUpGA507lOOooj2G3DgPRMdZUpH3';
+  isOwner = (u.uid === ADMIN_UID);
+
+  /* 관리자로 로그인했는데 players에 없을 수도 있음 → players 문서는 안 만들어도 됨 */
+  /* 하지만 일반 닉네임 계정도 같이 연결돼 있을 수 있으니 uid 기준으로만 조회 */
+
+  startListeners();
+  renderAll();
+
+  /* 관리자 로그인 직후 관리자 탭으로 이동 */
+  if (isOwner && currentPage !== 'admin') {
+    goPage('admin');
+  }
+});
+
+})();
+</script>
+</body>
+</html>
