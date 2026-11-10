@@ -346,7 +346,7 @@ window.APP_CONFIG = {
         if (hash((t - k) * 977 + i * 6151 + 5) < 1 / 1500) { d += hash((t - k) * 31 + i) < 0.5 ? 0.025 : -0.025; break; }
       }
     }
-    d -= 0.0015 * (p / s.base - 1);
+    d -= 0.0012 * (p / s.base - 1);
     p = p * (1 + d);
     return Math.min(s.base * 3, Math.max(s.base * 0.3, p));
   }
