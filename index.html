@@ -338,7 +338,7 @@ window.APP_CONFIG = {
       /* 4분 단위 구간마다 상승/하락/횡보 중 하나가 정해져서 같은 방향이 쭉 이어진다 */
       var c = Math.floor((t + i * 37) / CELL), h = hash(c * 7 + i * 104729 + 13);
       if (!m) m = h < 0.38 ? 'up' : h < 0.76 ? 'down' : 'flat';
-      var str = (0.6 + 0.8 * hash(c * 11 + i * 97 + 3)) * 0.008 * s.vol;
+      var str = (0.6 + 0.8 * hash(c * 11 + i * 97 + 3)) * 0.10 * s.vol;
       d = m === 'up' ? str : m === 'down' ? -str : 0;
       d += (hash(t * 131 + i * 7919) * 2 - 1) * 0.009 * s.vol;
       /* 아주 가끔 자동 폭등/폭락 (한 종목당 평균 50분에 한 번, 10초 정도) */
