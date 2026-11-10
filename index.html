@@ -340,7 +340,7 @@ window.APP_CONFIG = {
       if (!m) m = h < 0.38 ? 'up' : h < 0.76 ? 'down' : 'flat';
       var str = (0.6 + 0.8 * hash(c * 11 + i * 97 + 3)) * 0.10 * s.vol;
       d = m === 'up' ? str : m === 'down' ? -str : 0;
-      d += (hash(t * 131 + i * 7919) * 2 - 1) * 0.01 * s.vol;
+      d += (hash(t * 131 + i * 7919) * 2 - 1) * 0.007 * s.vol 
       /* 아주 가끔 자동 폭등/폭락 (한 종목당 평균 50분에 한 번, 10초 정도) */
       for (var k = 0; k < 5; k++) {
         if (hash((t - k) * 977 + i * 6151 + 5) < 1 / 1500) { d += hash((t - k) * 31 + i) < 0.5 ? 0.025 : -0.025; break; }
